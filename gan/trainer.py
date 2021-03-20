@@ -14,45 +14,31 @@ GPU_DEVICE = torch.device("cuda")  # Default CUDA device
 # GPU_DEVICE = None
 
 
-def data():
-    # torch.manual_seed(111)
-    train_data_length = 1024
-    train_data = torch.zeros((train_data_length, 2), device=GPU_DEVICE)
-    train_data[:, 0] = 2 * math.pi * torch.rand(train_data_length, device=GPU_DEVICE)
-    train_data[:, 1] = torch.sin(train_data[:, 0])
-    train_labels = torch.zeros(train_data_length, device=GPU_DEVICE)
-    # train_set = [
-    #     (train_data[i], train_labels[i]) for i in range(train_data_length)
-    # ]
-
-    train_set = torchvision.datasets.FashionMNIST(
-        root="./data/FashionMNIST",
-        train=True,
-        download=True,
-        transform=transforms.Compose([transforms.ToTensor()]),
-    )
-    return train_data, train_set, train_labels
-
-
 def plot(train_data):
     plt.plot(train_data[:, 0], train_data[:, 1], ".")
 
+class Flatten(torch.nn.Module):
+    def forward(self, x):
+        return x.view(x.shape[0], -1)
 
 class Discriminator(nn.Module):
     def __init__(self):
         super().__init__()
 
         self.model = nn.Sequential(
-            nn.Linear(2, 256),
+            nn.Conv2d(
+                in_channels=1, out_channels=4, kernel_size=3, stride=1, padding=1
+            ),
             nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
             nn.Dropout(0.3),
-            nn.Linear(256, 128),
+            nn.Conv2d(
+                in_channels=4, out_channels=1, kernel_size=5,
+            ),
             nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(64, 1),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            Flatten(),
+            nn.Linear(25, 1),
             nn.Sigmoid(),
         )
         if GPU_DEVICE:
@@ -67,13 +53,19 @@ class Generator(nn.Module):
         super().__init__()
 
         self.model = nn.Sequential(
-            nn.Linear(2, 16),
+            nn.Conv2d(
+                in_channels=1, out_channels=12, kernel_size=3, stride=1, padding=1
+            ),
             nn.ReLU(),
-            nn.Linear(16, 128),
+            nn.MaxPool2d(kernel_size=2),
+            nn.Upsample(scale_factor=4),
+            nn.Conv2d(
+                in_channels=12, out_channels=6, kernel_size=5, stride=2, padding=1
+            ),
+            nn.Conv2d(
+                in_channels=6, out_channels=1, kernel_size=2, stride=1, padding=1
+            ),
             nn.ReLU(),
-            nn.Linear(128, 32),
-            nn.ReLU(),
-            nn.Linear(32, 2),
         )
         if GPU_DEVICE:
             self.model = self.model.cuda()
@@ -82,75 +74,108 @@ class Generator(nn.Module):
         return self.model(x)
 
 
-def train(discriminator, generator):
-    lr = 0.001
-    num_epochs = 300
-    batch_size = 32
+class GAN:
+    def __init__(self, discriminator, generator):
+        self.discriminator = discriminator
+        self.generator = generator
 
-    loss_function = nn.BCELoss()
-    train_data, train_set, train_labels = data()
-    train_loader = torch.utils.data.DataLoader(
-        train_set, batch_size=batch_size, shuffle=True
-    )
-    optimizer_discriminator = torch.optim.Adam(discriminator.parameters(), lr=lr)
-    optimizer_generator = torch.optim.Adam(generator.parameters(), lr=lr)
+    @staticmethod
+    def data():
+        return torchvision.datasets.FashionMNIST(
+            root="./data/FashionMNIST",
+            train=True,
+            download=True,
+            transform=transforms.Compose([transforms.ToTensor()]),
+        )
 
-    for epoch in range(num_epochs):
-        start = timeit.default_timer()
-        # for n, (real_samples, _) in enumerate(train_loader):
-        for n, (images, labels) in enumerate(train_loader):
-            print(images.size())
-            return
-            if GPU_DEVICE:
-                images.cuda()
-            # Data for training the discriminator
-            real_samples_labels = torch.ones((batch_size, 1, 28, 28), device=GPU_DEVICE)
-            latent_space_samples = torch.randn(
-                (batch_size, 2, 28, 28), device=GPU_DEVICE
-            )
-            generated_samples = generator(latent_space_samples)
-            generated_samples_labels = torch.zeros((batch_size, 1), device=GPU_DEVICE)
-            all_samples = torch.cat((real_samples, generated_samples))
-            all_samples_labels = torch.cat(
-                (real_samples_labels, generated_samples_labels)
-            )
+    def train(self):
+        lr = 0.001
+        num_epochs = 300
+        batch_size = 32
+        loss_function = nn.BCELoss()
 
-            # Training the discriminator
-            discriminator.zero_grad()
-            output_discriminator = discriminator(all_samples)
-            loss_discriminator = loss_function(output_discriminator, all_samples_labels)
-            loss_discriminator.backward()
-            optimizer_discriminator.step()
+        train_set = self.data()
+        train_loader = torch.utils.data.DataLoader(
+            train_set, batch_size=batch_size, shuffle=True
+        )
+        optimizer_discriminator = torch.optim.Adam(
+            self.discriminator.parameters(), lr=lr
+        )
+        optimizer_generator = torch.optim.Adam(self.generator.parameters(), lr=lr)
 
-            # Data for training the generator
-            latent_space_samples = torch.randn((batch_size, 2), device=GPU_DEVICE)
+        for epoch in range(num_epochs):
+            start = timeit.default_timer()
+            # for n, (real_samples, _) in enumerate(train_loader):
+            for n, (images, labels) in enumerate(train_loader):
+                if GPU_DEVICE:
+                    images = images.cuda()
+                # Data for training the discriminator
+                real_samples_labels = torch.ones(
+                    (batch_size, 1), device=GPU_DEVICE
+                )
+                latent_space_samples = torch.randn(
+                    (batch_size, 1, 28, 28), device=GPU_DEVICE
+                )
+                generated_samples = self.generator(latent_space_samples)
+                generated_samples_labels = torch.zeros(
+                    (batch_size, 1), device=GPU_DEVICE
+                )
+                all_samples = torch.cat((images, generated_samples))
+                all_samples_labels = torch.cat(
+                    (real_samples_labels, generated_samples_labels)
+                )
 
-            # Training the generator
-            generator.zero_grad()
-            generated_samples = generator(latent_space_samples)
-            output_discriminator_generated = discriminator(generated_samples)
-            loss_generator = loss_function(
-                output_discriminator_generated, real_samples_labels
-            )
-            loss_generator.backward()
-            optimizer_generator.step()
+                # Training the discriminator
+                self.discriminator.zero_grad()
+                output_discriminator = self.discriminator(all_samples)
+                loss_discriminator = loss_function(
+                    output_discriminator, all_samples_labels
+                )
+                loss_discriminator.backward()
+                optimizer_discriminator.step()
 
-            # Show loss
-            if epoch % 10 == 0 and n == batch_size - 1:
-                print(f"Epoch: {epoch} Loss D.: {loss_discriminator}")
-                print(f"Epoch: {epoch} Loss G.: {loss_generator}")
-                print(timeit.default_timer() - start)
+                # Data for training the generator
+                latent_space_samples = torch.randn(
+                    (batch_size, 1, 28, 28), device=GPU_DEVICE
+                )
+
+                # Training the generator
+                self.generator.zero_grad()
+                generated_samples = self.generator(latent_space_samples)
+                output_discriminator_generated = self.discriminator(generated_samples)
+                loss_generator = loss_function(
+                    output_discriminator_generated, real_samples_labels
+                )
+                loss_generator.backward()
+                optimizer_generator.step()
+
+                # Show loss
+                if epoch % 10 == 0 and n == batch_size - 1:
+                    print(f"Epoch: {epoch} Loss D.: {loss_discriminator}")
+                    print(f"Epoch: {epoch} Loss G.: {loss_generator}")
+                    print(timeit.default_timer() - start)
 
 
 def main():
-    discriminator = Discriminator()
-    generator = Generator()
-    train(discriminator, generator)
-    latent_space_samples = torch.randn(100, 2, device=GPU_DEVICE)
-    generated_samples = generator(latent_space_samples)
+    gan = GAN(Discriminator(), Generator())
+    gan.train()
+    latent_space_samples = torch.randn(1, 1, 28, 28, device=GPU_DEVICE)
+    generated_samples = gan.generator(latent_space_samples)
     generated_samples = generated_samples.detach()
-    # plt.plot(generated_samples[:, 0].cpu(), generated_samples[:, 1].cpu(), ".")
-    # plt.show()
+    if GPU_DEVICE:
+        generated_samples = generated_samples.cpu()
+    print(generated_samples)
+    print(generated_samples.size())
+
+    # generated_samples = gan.discriminator(latent_space_samples)
+    # generated_samples = generated_samples.detach()
+    # if GPU_DEVICE:
+    #     generated_samples = generated_samples.cpu()
+    # print(generated_samples)
+    # print(generated_samples.size())
+
+    plt.imshow(generated_samples[0, 0, :, :])
+    plt.show()
 
 
 if __name__ == "__main__":
