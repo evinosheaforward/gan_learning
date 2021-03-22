@@ -18,7 +18,7 @@ def main():
     latent_space_samples = GAN.latent_input()
     for file in sorted(
         [
-            i[:-3] for i in os.listdir("./ models")
+            i[:-3] for i in os.listdir("./models")
             if i.startswith("GAN_new") and i.endswith("gen")
         ],
         key=lambda x: float(x.split("_")[-1])

@@ -28,6 +28,7 @@ def plot_losses(disc_loss, gen_loss):
         plt.plot(*unzip(enumerate(disc_loss)), label=f"disc: {i}")
     for i, losses in enumerate(gen_loss):
         plt.plot(*unzip(enumerate(losses)), label=f"gen: {i}")
+    plt.legend()
     plt.show()
 
 class Reshape(torch.nn.Module):
@@ -263,7 +264,7 @@ class GAN:
                 loss_generator.backward()
                 optimizer_generator.step()
                 gen_losses.append(float(loss_generator))
-            if epoch % (x := 10) == 1:
+            if epoch % (x := 10) == 0:
                 # Show loss
                 print(f"Epoch: {epoch} Loss D.: {loss_discriminator}")
                 print(f"Epoch: {epoch} Loss G.: {loss_generator}")
@@ -285,14 +286,17 @@ def main():
     else:
         gan = GAN(Discriminator(), Generator())
     
+    disc_losses, gen_losses = [], []
     for i in range(5):
         # Train the models
         start = timeit.default_timer()
-        disc_losses, gen_losses = gan.train()
+        dl, gl = gan.train()
+        disc_losses.append(dl)
+        gen_losses.append(gl)
         print("Train Time:")
         print(timeit.default_timer() - start)
         gan.save(f"models/GAN_new_{timeit.default_timer()}")
-        plot_losses(disc_losses, gen_losses)
+        # plot_losses(disc_losses, gen_losses)
 
 if __name__ == "__main__":
     print(torch.cuda.is_available())
