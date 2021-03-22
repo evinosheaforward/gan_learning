@@ -201,15 +201,15 @@ class GAN:
         # Init loss functions
         loss_function = nn.BCELoss()
         losses = []
+        # total data is dataset * num_epochs
+        # Load train data
+        train_set = self.data()
+        train_loader = torch.utils.data.DataLoader(
+            train_set, batch_size=batch_size, shuffle=True
+        )
         if model == "discriminator":
             self.generator.model.eval()
             self.discriminator.model.train()
-            # total data is dataset * num_epochs
-            # Load train data
-            train_set = self.data()
-            train_loader = torch.utils.data.DataLoader(
-                train_set, batch_size=batch_size, shuffle=True
-            )
             # Labels for generated data, all 0
             generated_samples_labels = torch.zeros(
                 (batch_size, 1), device=GPU_DEVICE
@@ -229,9 +229,9 @@ class GAN:
         loop_start = timeit.default_timer()
         # Repeat num_epoch times
         for epoch in range(num_epochs):
-            # Iterate through dataset
-            if model == "discriminator":
-                for n, (images, labels) in enumerate(train_loader):
+            for n, (images, labels) in enumerate(train_loader):
+                # Iterate through dataset
+                if model == "discriminator":
                     if GPU_DEVICE:
                         images = images.cuda()
                     # Data for training the discriminator
@@ -248,24 +248,24 @@ class GAN:
                     loss_discriminator = loss_function(
                         output_discriminator, all_samples_labels
                     )
-                    losses.append(loss_discriminator)
                     loss_discriminator.backward()
                     optimizer_discriminator.step()
-            else: # generator
-                # Data for training the generator
-                latent_space_samples = self.latent_input(batch_size)
-                # Training the generator
-                self.generator.zero_grad()
-                generated_samples = self.generator(latent_space_samples)
-                output_discriminator_generated = self.discriminator(
-                    generated_samples
-                )
-                loss_generator = loss_function(
-                    output_discriminator_generated, real_samples_labels
-                )
-                loss_generator.backward()
-                losses.append(float(loss_generator))
-                optimizer_generator.step()
+                    losses.append(float(loss_generator))
+                else: # generator
+                    # Data for training the generator
+                    latent_space_samples = self.latent_input(batch_size)
+                    # Training the generator
+                    self.generator.zero_grad()
+                    generated_samples = self.generator(latent_space_samples)
+                    output_discriminator_generated = self.discriminator(
+                        generated_samples
+                    )
+                    loss_generator = loss_function(
+                        output_discriminator_generated, real_samples_labels
+                    )
+                    loss_generator.backward()
+                    optimizer_generator.step()
+                    losses.append(float(loss_generator))
         if model == "discriminator":
             # Show loss
             print(f"Epoch: {epoch} Loss D.: {loss_discriminator}")
@@ -299,7 +299,7 @@ def main():
         if i % (x := 1) == 0:
             print("Train Time:")
             print(timeit.default_timer() - start)
-            gan.save(f"models/GAN_280l_{timeit.default_timer()}")
+            gan.save(f"models/GAN_new_{timeit.default_timer()}")
             start = timeit.default_timer()
         plot_losses(disc_losses, gen_losses)
 
