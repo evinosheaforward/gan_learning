@@ -1,5 +1,6 @@
-from functools import partial
+from functools import partial, reduce
 import math
+from operator import __add__
 import timeit
 
 import matplotlib.pyplot as plt
@@ -14,45 +15,65 @@ import torchvision.transforms as transforms
 GPU_DEVICE = torch.device("cuda")  # Default CUDA device
 # GPU_DEVICE = None
 
+def unzip(indata):
+    x, y = [], []
+    for i, j in indata:
+        x.append(i)
+        y.append(j)
+    return x, y
+        
 
-def plot(train_data):
-    plt.plot(train_data[:, 0], train_data[:, 1], ".")
+def plot_losses(disc_loss, gen_loss):
+    for i, losses in enumerate(disc_loss):
+        plt.plot(*unzip(enumerate(disc_loss)), label=f"disc: {i}")
+    for i, losses in enumerate(gen_loss):
+        plt.plot(*unzip(enumerate(losses)), label=f"gen: {i}")
+    plt.show()
+
+class Reshape(torch.nn.Module):
+    def __init__(self, shape):
+        super().__init__()
+        self.shape = shape
+
+    def forward(self, x):
+        return x.view(x.shape[0], *self.shape)
+
+
+class Flatten(torch.nn.Module):
+    def forward(self, x):
+        return x.view(x.shape[0], -1)
+
 
 class Generator(nn.Module):
     def __init__(self):
         super().__init__()
 
         self.model = nn.Sequential(
-            nn.Conv2d(
-                in_channels=1,
-                out_channels=6,
-                kernel_size=24,
-                stride=3,
-                padding=4
+            Flatten(),
+            nn.Linear(28*28, 128*7*7),
+            nn.LeakyReLU(0.2),
+            Reshape((128, 7, 7)),
+            nn.ConvTranspose2d(
+                in_channels=128,
+                out_channels=128,
+                kernel_size=(4, 4),
+                stride=(2, 2),
+                padding=(1, 1)
             ),
-            nn.MaxPool2d(kernel_size=2, stride=1),
-            nn.Dropout2d(0.25),
-            nn.Conv2d(
-                in_channels=6,
-                out_channels=4,
-                kernel_size=24,
-                stride=1,
-                padding=2
+            nn.LeakyReLU(0.2),
+            nn.ConvTranspose2d(
+                in_channels=128,
+                out_channels=128,
+                kernel_size=(4, 4),
+                stride=(2, 2),
+                padding=(1, 1)
             ),
-            nn.Dropout2d(0.25),
+            nn.LeakyReLU(0.2),
             nn.Conv2d(
-                in_channels=4,
+                in_channels=128,
                 out_channels=1,
-                kernel_size=10,
-                stride=2,
-                padding=2
-            ),
-            nn.Conv2d(
-                in_channels=1,
-                out_channels=1,
-                kernel_size=7,
-                stride=1,
-                padding=1
+                kernel_size=(7, 7),
+                padding=(3, 3)
             ),
         )
         if GPU_DEVICE:
@@ -75,29 +96,30 @@ class Generator(nn.Module):
         torch.save(self.model.state_dict(), path)
     
 
-class Flatten(torch.nn.Module):
-    def forward(self, x):
-        return x.view(x.shape[0], -1)
-
-
 class Discriminator(nn.Module):
     def __init__(self):
         super().__init__()
 
         self.model = nn.Sequential(
             nn.Conv2d(
-                in_channels=1, out_channels=4, kernel_size=3, stride=1, padding=1
+                in_channels=1,
+                out_channels=64,
+                kernel_size=(4, 4),
+                stride=(2, 2),
+                padding=(1, 1),
             ),
-            # nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.LeakyReLU(0.2),
             nn.Dropout(0.3),
             nn.Conv2d(
-                in_channels=4, out_channels=1, kernel_size=5,
+                in_channels=64,
+                out_channels=64,
+                kernel_size=(4, 4),
+                stride=(2, 2),
+                padding=(1, 1),
             ),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.ReLU(),
+            nn.LeakyReLU(0.2),
             Flatten(),
-            nn.Linear(25, 1),
+            nn.Linear(3136, 1),
             nn.Sigmoid(),
         )
         if GPU_DEVICE:
@@ -124,6 +146,24 @@ class GAN:
     def __init__(self, discriminator, generator):
         self.discriminator = discriminator
         self.generator = generator
+    
+    def performance(self, step, n_samples=5):
+        # prepare fake examples
+        generated_samples = gan.generator(GAN.latent_input(n_samples))
+        generated_samples = generated_samples.detach()
+        if GPU_DEVICE:
+            generated_samples = generated_samples.cpu()
+        # plot images
+        for i in range(10 * 10):
+            # define subplot
+            plt.subplot(10, 10, 1 + i)
+            # turn off axis
+            plt.axis('off')
+            # plot raw pixel data
+            plt.imshow(X[i, 0, :, :], cmap='gray_r')
+        # save plot to file
+        plt.savefig('results/generator_step_%03d.png' % (step+1))
+        plt.close()
 
     @staticmethod
     def data():
@@ -151,6 +191,7 @@ class GAN:
         """
         lr = 0.001
         batch_size = 32
+        num_epochs = 4
         # Labels for real data: 
         # - for discriminator, this is real images
         # - for generator this is what we wanted the discriminator output to be
@@ -159,11 +200,11 @@ class GAN:
         )
         # Init loss functions
         loss_function = nn.BCELoss()
+        losses = []
         if model == "discriminator":
             self.generator.model.eval()
             self.discriminator.model.train()
             # total data is dataset * num_epochs
-            num_epochs = 10
             # Load train data
             train_set = self.data()
             train_loader = torch.utils.data.DataLoader(
@@ -181,7 +222,6 @@ class GAN:
             self.generator.model.train()
             self.discriminator.model.eval()
             # total data is batch_size * num_epochs
-            num_epochs = 50
             # Load optimizer
             optimizer_generator = torch.optim.Adam(
                 self.generator.parameters(), lr=lr,
@@ -208,6 +248,7 @@ class GAN:
                     loss_discriminator = loss_function(
                         output_discriminator, all_samples_labels
                     )
+                    losses.append(loss_discriminator)
                     loss_discriminator.backward()
                     optimizer_discriminator.step()
             else: # generator
@@ -223,6 +264,7 @@ class GAN:
                     output_discriminator_generated, real_samples_labels
                 )
                 loss_generator.backward()
+                losses.append(float(loss_generator))
                 optimizer_generator.step()
         if model == "discriminator":
             # Show loss
@@ -231,11 +273,12 @@ class GAN:
         else: # generator
             print(f"Epoch: {epoch} Loss G.: {loss_generator}")
             print(timeit.default_timer() - loop_start)
+        return losses
 
     @staticmethod
     def latent_input(batch_size=1, generated=True):
         return torch.randn(
-            batch_size, 1, 280, 280, device=GPU_DEVICE
+            batch_size, 1, 28, 28, device=GPU_DEVICE
         )
 
 
@@ -248,14 +291,17 @@ def main():
     
     # Train the models
     start = timeit.default_timer()
+    disc_losses = []
+    gen_losses = []
     for i in range(11):
-        gan.train(model="discriminator")
-        gan.train(model="generator")
+        disc_losses.append(gan.train(model="discriminator"))
+        gen_losses.append(gan.train(model="generator"))
         if i % (x := 1) == 0:
             print("Train Time:")
             print(timeit.default_timer() - start)
             gan.save(f"models/GAN_280l_{timeit.default_timer()}")
             start = timeit.default_timer()
+        plot_losses(disc_losses, gen_losses)
 
 if __name__ == "__main__":
     print(torch.cuda.is_available())
