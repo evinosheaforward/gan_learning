@@ -185,13 +185,13 @@ class GAN:
         self.discriminator.save(path + "desc")
         self.generator.save(path + "gen")
 
-    def train(self, model="generator"):
+    def train(self):
         """Train the model by iterating through the dataset
         num_epoch times, printing the duration per epoch
         """
         lr = 0.001
         batch_size = 32
-        num_epochs = 4
+        num_epochs = 10
         # Labels for real data: 
         # - for discriminator, this is real images
         # - for generator this is what we wanted the discriminator output to be
@@ -200,80 +200,76 @@ class GAN:
         )
         # Init loss functions
         loss_function = nn.BCELoss()
-        losses = []
+        gen_losses = []
+        disc_losses = []
         # total data is dataset * num_epochs
         # Load train data
         train_set = self.data()
         train_loader = torch.utils.data.DataLoader(
             train_set, batch_size=batch_size, shuffle=True
         )
-        if model == "discriminator":
-            self.generator.model.eval()
-            self.discriminator.model.train()
-            # Labels for generated data, all 0
-            generated_samples_labels = torch.zeros(
-                (batch_size, 1), device=GPU_DEVICE
-            )
-            # Load optimizer
-            optimizer_discriminator = torch.optim.Adam(
-                self.discriminator.parameters(), lr=lr,
-            )
-        else: # generator
-            self.generator.model.train()
-            self.discriminator.model.eval()
-            # total data is batch_size * num_epochs
-            # Load optimizer
-            optimizer_generator = torch.optim.Adam(
-                self.generator.parameters(), lr=lr,
-            )
-        loop_start = timeit.default_timer()
+        self.generator.model.eval()
+        self.discriminator.model.train()
+        # Labels for generated data, all 0
+        generated_samples_labels = torch.zeros(
+            (batch_size, 1), device=GPU_DEVICE
+        )
+        # Load optimizer
+        optimizer_discriminator = torch.optim.Adam(
+            self.discriminator.parameters(), lr=lr,
+        )
+        self.generator.model.train()
+        self.discriminator.model.eval()
+        # total data is batch_size * num_epochs
+        # Load optimizer
+        optimizer_generator = torch.optim.Adam(
+            self.generator.parameters(), lr=lr,
+        )
+        start = timeit.default_timer()
         # Repeat num_epoch times
         for epoch in range(num_epochs):
             for n, (images, labels) in enumerate(train_loader):
                 # Iterate through dataset
-                if model == "discriminator":
-                    if GPU_DEVICE:
-                        images = images.cuda()
-                    # Data for training the discriminator
-                    latent_space_samples = self.latent_input(batch_size)
-                    generated_samples = self.generator(latent_space_samples)
-                    # label inputs as real, fake
-                    all_samples = torch.cat((images, generated_samples))
-                    all_samples_labels = torch.cat(
-                        (real_samples_labels, generated_samples_labels)
-                    )
-                    # Training the discriminator
-                    self.discriminator.zero_grad()
-                    output_discriminator = self.discriminator(all_samples)
-                    loss_discriminator = loss_function(
-                        output_discriminator, all_samples_labels
-                    )
-                    loss_discriminator.backward()
-                    optimizer_discriminator.step()
-                    losses.append(float(loss_generator))
-                else: # generator
-                    # Data for training the generator
-                    latent_space_samples = self.latent_input(batch_size)
-                    # Training the generator
-                    self.generator.zero_grad()
-                    generated_samples = self.generator(latent_space_samples)
-                    output_discriminator_generated = self.discriminator(
-                        generated_samples
-                    )
-                    loss_generator = loss_function(
-                        output_discriminator_generated, real_samples_labels
-                    )
-                    loss_generator.backward()
-                    optimizer_generator.step()
-                    losses.append(float(loss_generator))
-        if model == "discriminator":
-            # Show loss
-            print(f"Epoch: {epoch} Loss D.: {loss_discriminator}")
-            print(timeit.default_timer() - loop_start)
-        else: # generator
-            print(f"Epoch: {epoch} Loss G.: {loss_generator}")
-            print(timeit.default_timer() - loop_start)
-        return losses
+                if GPU_DEVICE:
+                    images = images.cuda()
+                # Data for training the discriminator
+                latent_space_samples = self.latent_input(batch_size)
+                generated_samples = self.generator(latent_space_samples)
+                # label inputs as real, fake
+                all_samples = torch.cat((images, generated_samples))
+                all_samples_labels = torch.cat(
+                    (real_samples_labels, generated_samples_labels)
+                )
+                # Training the discriminator
+                self.discriminator.zero_grad()
+                output_discriminator = self.discriminator(all_samples)
+                loss_discriminator = loss_function(
+                    output_discriminator, all_samples_labels
+                )
+                loss_discriminator.backward()
+                optimizer_discriminator.step()
+                disc_losses.append(float(loss_discriminator))
+                # Data for training the generator
+                latent_space_samples = self.latent_input(batch_size)
+                # Training the generator
+                self.generator.zero_grad()
+                generated_samples = self.generator(latent_space_samples)
+                output_discriminator_generated = self.discriminator(
+                    generated_samples
+                )
+                loss_generator = loss_function(
+                    output_discriminator_generated, real_samples_labels
+                )
+                loss_generator.backward()
+                optimizer_generator.step()
+                gen_losses.append(float(loss_generator))
+            if epoch % (x := 10) == 1:
+                # Show loss
+                print(f"Epoch: {epoch} Loss D.: {loss_discriminator}")
+                print(f"Epoch: {epoch} Loss G.: {loss_generator}")
+                print(timeit.default_timer() - start)
+                start = timeit.default_timer()
+        return disc_losses, gen_losses
 
     @staticmethod
     def latent_input(batch_size=1, generated=True):
@@ -289,18 +285,13 @@ def main():
     else:
         gan = GAN(Discriminator(), Generator())
     
-    # Train the models
-    start = timeit.default_timer()
-    disc_losses = []
-    gen_losses = []
-    for i in range(11):
-        disc_losses.append(gan.train(model="discriminator"))
-        gen_losses.append(gan.train(model="generator"))
-        if i % (x := 1) == 0:
-            print("Train Time:")
-            print(timeit.default_timer() - start)
-            gan.save(f"models/GAN_new_{timeit.default_timer()}")
-            start = timeit.default_timer()
+    for i in range(5):
+        # Train the models
+        start = timeit.default_timer()
+        disc_losses, gen_losses = gan.train()
+        print("Train Time:")
+        print(timeit.default_timer() - start)
+        gan.save(f"models/GAN_new_{timeit.default_timer()}")
         plot_losses(disc_losses, gen_losses)
 
 if __name__ == "__main__":
