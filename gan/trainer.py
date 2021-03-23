@@ -190,8 +190,8 @@ class GAN:
         """Train the model by iterating through the dataset
         num_epoch times, printing the duration per epoch
         """
-        lr = 0.001
-        batch_size = 32
+        lr = 0.0002
+        batch_size = 1000
         num_epochs = 10
         # Labels for real data: 
         # - for discriminator, this is real images
@@ -282,12 +282,12 @@ class GAN:
 def main():
     # to train saved or load new model
     if False:
-        gan = GAN.load("GAN_4198.6636476", mode="train")
+        gan = GAN.load("models/GAN_new_1182.0918666", mode="train")
     else:
         gan = GAN(Discriminator(), Generator())
     
     disc_losses, gen_losses = [], []
-    for i in range(5):
+    for i in range(60):
         # Train the models
         start = timeit.default_timer()
         dl, gl = gan.train()
@@ -295,7 +295,7 @@ def main():
         gen_losses.append(gl)
         print("Train Time:")
         print(timeit.default_timer() - start)
-        gan.save(f"models/GAN_new_{timeit.default_timer()}")
+        gan.save(f"models/GAN_new_lower_lr_{timeit.default_timer()}")
         # plot_losses(disc_losses, gen_losses)
 
 if __name__ == "__main__":

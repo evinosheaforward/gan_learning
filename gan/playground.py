@@ -16,10 +16,14 @@ GPU_DEVICE = torch.device("cuda")  # Default CUDA device
 def main():
     # load the model
     latent_space_samples = GAN.latent_input()
+    _, axes = plt.subplots(10, 10)
+    i, j = 0, 0
     for file in sorted(
         [
             i[:-3] for i in os.listdir("./models")
             if i.startswith("GAN_new") and i.endswith("gen")
+            # and not "lower_lr" in i
+            # and "lower_lr" in i
         ],
         key=lambda x: float(x.split("_")[-1])
     ):
@@ -36,10 +40,14 @@ def main():
             decision = decision.cpu()
         # OUTPUT
         print(decision)
-        plt.imshow(generated_samples[0, 0, :, :])
-        plt.figure()
+        axes[i, j].imshow(generated_samples[0, 0, :, :])
+        if i == 10:
+            i = 0
+            j += 1
+        else:
+            i += 1
     latent_space_samples = latent_space_samples.cpu()
-    plt.imshow(latent_space_samples[0, 0, :, :])
+    axes[i, j].imshow(latent_space_samples[0, 0, :, :])
     plt.show()
 
 if __name__ == "__main__":
