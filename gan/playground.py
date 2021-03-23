@@ -1,3 +1,5 @@
+import math
+import os
 import timeit
 
 import matplotlib.pyplot as plt
@@ -13,47 +15,77 @@ GPU_DEVICE = torch.device("cuda")  # Default CUDA device
 
 
 def main():
-    if True:
-        # Try out the generator model with random input
-        latent_space_samples = torch.randn(1, 1, 28, 28, device=GPU_DEVICE)
-    else:
-        # see what the model does with real input
-        latent_space_samples = next(
-            iter(
-                torch.utils.data.DataLoader(
-                    GAN.data(), batch_size=1, shuffle=True
-                )
-            )
-        )[0]
-        print(latent_space_samples)
-        print(latent_space_samples.size())
-        if GPU_DEVICE:
-            latent_space_samples = latent_space_samples.cuda()
     # load the model
-    gan = GAN.load("GAN_4198.6636476")
-    # gen output
-    generated_samples = gan.generator(latent_space_samples)
-    generated_samples = generated_samples.detach()
-    # Try out the discriminator model:
-    decision = gan.discriminator(generated_samples)
-    decision = decision.detach()
-    if GPU_DEVICE:
-        generated_samples = generated_samples.cpu()
-        latent_space_samples = latent_space_samples.cpu()
-        decision = decision.cpu()
-    # INPUT
-    print("INPUT:")
-    print("--------------")
-    plt.imshow(latent_space_samples[0, 0, :, :])
-    plt.figure()
-    # OUTPUT
-    print(generated_samples)
-    print(generated_samples.size())
-    print("--------------")
-    print(decision)
-    plt.imshow(generated_samples[0, 0, :, :])
+    latent_space_samples = GAN.latent_input()
+    files = sorted(
+        [
+            i[:-3] for i in os.listdir("./models")
+            if i.startswith("GAN_new") and i.endswith("gen")
+            # and not "lower_lr" in i
+            and "lower_lr" in i
+        ],
+        key=lambda x: float(x.split("_")[-1])
+    )
+    i, j = 1, 0
+    xlen = math.floor(math.sqrt(len(files)))
+    ylen = math.ceil(len(files) / xlen ) - 1
+    xlen += 1
+
+    _, axes = plt.subplots(xlen, ylen)
+    for file in files:
+        print(file)
+        gan = GAN.load("models/" + file)
+        # gen output
+        generated_samples = gan.generator(latent_space_samples)
+        generated_samples = generated_samples.detach()
+        # Try out the discriminator model:
+        decision = gan.discriminator(generated_samples)
+        decision = decision.detach()
+        if GPU_DEVICE:
+            generated_samples = generated_samples.cpu()
+            decision = decision.cpu()
+        # OUTPUT
+        print(decision)
+        axes[j, i].imshow(generated_samples[0, 0, :, :])
+        if i == xlen-1:
+            i = 0
+            j += 1
+        else:
+            i += 1
+    latent_space_samples = latent_space_samples.cpu()
+    axes[0, 0].imshow(latent_space_samples[0, 0, :, :])
     plt.show()
 
+def test_model():
+    # load the model
+    file = "GAN_new_lower_lr_20819.5471887"
+    xlen = 12
+    ylen = 12
+    gan = GAN.load("models/" + file)
+    print(file)
+
+    _, axes = plt.subplots(xlen, ylen)
+    for i in range(xlen):
+        for j in range(ylen):
+            latent_space_samples = GAN.latent_input()
+            # gen output
+            generated_samples = gan.generator(latent_space_samples)
+            generated_samples = generated_samples.detach()
+            # Try out the discriminator model:
+            decision = gan.discriminator(generated_samples)
+            decision = decision.detach()
+            if GPU_DEVICE:
+                generated_samples = generated_samples.cpu()
+                decision = decision.cpu()
+            # OUTPUT
+            print(decision)
+            axes[j, i].imshow(generated_samples[0, 0, :, :])
+    # latent_space_samples = latent_space_samples.cpu()
+    # axes[0, 0].imshow(latent_space_samples[0, 0, :, :])
+    plt.show()
+
+
 if __name__ == "__main__":
-    main()
+    test_model()
+    # main()
     
