@@ -3,6 +3,7 @@ import shutil
 
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
+import numpy
 
 from lxml import html
 import requests
@@ -15,13 +16,15 @@ GPU_DEVICE = torch.device("cuda")  # Default CUDA device
 # GPU_DEVICE = None
 
 
-def load_images(path, batch_size):
+def load_images(path):
     train_set = []
-    for fname in os.path.listdir(path):
+    for fname in os.listdir(path):
         fpath = os.path.join(path, fname)
         img = mpimg.imread(fpath)
         train_set.append(resize(img, (800, 800, 3)))
-    return torch.from_numpy(numpy.asarray(train_set)).permute(0, 3, 1, 2)
+    return torch.from_numpy(numpy.asarray(train_set), device=GPU_DEVICE).permute(
+        0, 3, 1, 2
+    )
 
 
 def download_image(url):

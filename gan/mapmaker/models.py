@@ -31,31 +31,36 @@ class Flatten(torch.nn.Module):
 
 class Generator(nn.Module):
     def __init__(self):
+        self.in_ch, self.in_x, self.in_y = 3, 80, 80
         super().__init__()
 
         self.model = nn.Sequential(
             Flatten(),
-            nn.Linear(800 * 800 * 3, 128 * 180 * 180),
+            nn.Linear(self.in_ch * self.in_x * self.in_y, 28 * 64 * 64),
             nn.LeakyReLU(0.2),
-            Reshape((128, 180, 180)),
+            Reshape((28, 64, 64)),
             nn.ConvTranspose2d(
-                in_channels=128,
+                in_channels=28,
                 out_channels=128,
-                kernel_size=(4, 4),
-                stride=(2, 2),
-                padding=(1, 1),
+                kernel_size=(2, 2),
+                stride=(4, 4),
+                padding=(2, 2),
             ),
             nn.LeakyReLU(0.2),
             nn.ConvTranspose2d(
                 in_channels=128,
                 out_channels=128,
-                kernel_size=(4, 4),
-                stride=(2, 2),
-                padding=(1, 1),
+                kernel_size=(2, 2),
+                stride=(4, 4),
+                padding=(2, 2),
             ),
             nn.LeakyReLU(0.2),
             nn.Conv2d(
-                in_channels=128, out_channels=1, kernel_size=(7, 7), padding=(3, 3)
+                in_channels=128,
+                out_channels=3,
+                kernel_size=(2, 2),
+                stride=(4, 4),
+                padding=(2, 2),
             ),
         )
         if GPU_DEVICE:
@@ -86,8 +91,8 @@ class Discriminator(nn.Module):
             nn.Conv2d(
                 in_channels=3,
                 out_channels=64,
-                kernel_size=(4, 4),
-                stride=(2, 2),
+                kernel_size=(9, 9),
+                stride=(3, 3),
                 padding=(1, 1),
             ),
             nn.LeakyReLU(0.2),
@@ -95,8 +100,26 @@ class Discriminator(nn.Module):
             nn.Conv2d(
                 in_channels=64,
                 out_channels=64,
-                kernel_size=(4, 4),
-                stride=(2, 2),
+                kernel_size=(9, 9),
+                stride=(3, 3),
+                padding=(1, 1),
+            ),
+            nn.LeakyReLU(0.2),
+            nn.Dropout(0.3),
+            nn.Conv2d(
+                in_channels=64,
+                out_channels=64,
+                kernel_size=(9, 9),
+                stride=(3, 3),
+                padding=(1, 1),
+            ),
+            nn.LeakyReLU(0.2),
+            nn.Dropout(0.3),
+            nn.Conv2d(
+                in_channels=64,
+                out_channels=64,
+                kernel_size=(3, 3),
+                stride=(4, 4),
                 padding=(1, 1),
             ),
             nn.LeakyReLU(0.2),
@@ -244,6 +267,15 @@ class GAN:
             start = timeit.default_timer()
         return disc_losses, gen_losses
 
+    def latent_input(self, batch_size=1, generated=True):
+        return torch.randn(
+            batch_size,
+            self.generator.in_ch,
+            self.generator.in_x,
+            self.generator.in_y,
+            device=GPU_DEVICE,
+        )
+
     @staticmethod
-    def latent_input(batch_size=1, generated=True):
-        return torch.randn(batch_size, 1, 28, 28, device=GPU_DEVICE)
+    def discriminator_latent_input(batch_size=1, generated=True):
+        return torch.randn(batch_size, 3, 800, 800, device=GPU_DEVICE)

@@ -11,7 +11,7 @@ from torch import nn
 import torchvision
 import torchvision.transforms as transforms
 
-from mapmaker.models import GAN
+from gan.mapmaker.models import GAN
 
 # Use GPU switch (TODO: make this an arg ofc)
 GPU_DEVICE = torch.device("cuda")  # Default CUDA device
