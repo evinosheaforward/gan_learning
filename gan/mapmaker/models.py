@@ -14,6 +14,7 @@ import torchvision.transforms as transforms
 # Use GPU switch (TODO: make this an arg ofc)
 GPU_DEVICE = torch.device("cuda")  # Default CUDA device
 
+
 class Reshape(torch.nn.Module):
     def __init__(self, shape):
         super().__init__()
@@ -34,15 +35,15 @@ class Generator(nn.Module):
 
         self.model = nn.Sequential(
             Flatten(),
-            nn.Linear(28*28, 128*7*7),
+            nn.Linear(800 * 800 * 3, 128 * 180 * 180),
             nn.LeakyReLU(0.2),
-            Reshape((128, 7, 7)),
+            Reshape((128, 180, 180)),
             nn.ConvTranspose2d(
                 in_channels=128,
                 out_channels=128,
                 kernel_size=(4, 4),
                 stride=(2, 2),
-                padding=(1, 1)
+                padding=(1, 1),
             ),
             nn.LeakyReLU(0.2),
             nn.ConvTranspose2d(
@@ -50,14 +51,11 @@ class Generator(nn.Module):
                 out_channels=128,
                 kernel_size=(4, 4),
                 stride=(2, 2),
-                padding=(1, 1)
+                padding=(1, 1),
             ),
             nn.LeakyReLU(0.2),
             nn.Conv2d(
-                in_channels=128,
-                out_channels=1,
-                kernel_size=(7, 7),
-                padding=(3, 3)
+                in_channels=128, out_channels=1, kernel_size=(7, 7), padding=(3, 3)
             ),
         )
         if GPU_DEVICE:
@@ -65,7 +63,7 @@ class Generator(nn.Module):
 
     def forward(self, x):
         return self.model(x)
-    
+
     @classmethod
     def load(cls, path, mode="eval"):
         inst = cls()
@@ -75,10 +73,10 @@ class Generator(nn.Module):
         else:
             inst.model.train()
         return inst
-    
+
     def save(self, path):
         torch.save(self.model.state_dict(), path)
-    
+
 
 class Discriminator(nn.Module):
     def __init__(self):
@@ -86,7 +84,7 @@ class Discriminator(nn.Module):
 
         self.model = nn.Sequential(
             nn.Conv2d(
-                in_channels=1,
+                in_channels=3,
                 out_channels=64,
                 kernel_size=(4, 4),
                 stride=(2, 2),
@@ -121,16 +119,35 @@ class Discriminator(nn.Module):
         else:
             inst.model.train()
         return inst
-    
+
     def save(self, path):
         torch.save(self.model.state_dict(), path)
 
 
 class GAN:
-    def __init__(self, discriminator, generator):
+    def __init__(self, discriminator=Discriminator(), generator=Generator()):
         self.discriminator = discriminator
         self.generator = generator
-    
+
+    @classmethod
+    def load(cls, path, mode="eval"):
+        return cls(
+            Discriminator.load(path + "desc", mode=mode),
+            Generator.load(path + "gen", mode=mode),
+        )
+
+    def save(self, path):
+        self.discriminator.save(path + "desc")
+        self.generator.save(path + "gen")
+
+    def load_train_data(self, path="data/dnd_maps/"):
+        self.train_data = mapimg.load_data("data/dnd_maps/")
+
+    def shuffle_data(self, batch_size):
+        return torch.utils.data.DataLoader(
+            self.train_data, batch_size=batch_size, shuffle=True
+        )
+
     def performance(self, step, n_samples=5):
         # prepare fake examples
         generated_samples = gan.generator(GAN.latent_input(n_samples))
@@ -142,72 +159,46 @@ class GAN:
             # define subplot
             plt.subplot(10, 10, 1 + i)
             # turn off axis
-            plt.axis('off')
+            plt.axis("off")
             # plot raw pixel data
-            plt.imshow(X[i, 0, :, :], cmap='gray_r')
+            plt.imshow(X[i, 0, :, :], cmap="gray_r")
         # save plot to file
-        plt.savefig('results/generator_step_%03d.png' % (step+1))
+        plt.savefig("results/generator_step_%03d.png" % (step + 1))
         plt.close()
-
-    @staticmethod
-    def data():
-        return torchvision.datasets.FashionMNIST(
-            root="./data/FashionMNIST",
-            train=True,
-            download=True,
-            transform=transforms.Compose([transforms.ToTensor()]),
-        )
-
-    @classmethod
-    def load(cls, path, mode="eval"):
-        return cls(
-            Discriminator.load(path + "desc", mode=mode),
-            Generator.load(path + "gen", mode=mode),
-        )
-    
-    def save(self, path):
-        self.discriminator.save(path + "desc")
-        self.generator.save(path + "gen")
 
     def train(self):
         """Train the model by iterating through the dataset
         num_epoch times, printing the duration per epoch
         """
-        lr = 0.0002
-        batch_size = 1000
+        batch_size = 32
         num_epochs = 10
-        # Labels for real data: 
+        # Labels for real data:
         # - for discriminator, this is real images
         # - for generator this is what we wanted the discriminator output to be
-        real_samples_labels = torch.ones(
-            (batch_size, 1), device=GPU_DEVICE
-        )
+        real_samples_labels = torch.all(0.9, (batch_size, 1), device=GPU_DEVICE)
         # Init loss functions
         loss_function = nn.BCELoss()
         gen_losses = []
         disc_losses = []
         # total data is dataset * num_epochs
         # Load train data
-        train_set = self.data()
-        train_loader = torch.utils.data.DataLoader(
-            train_set, batch_size=batch_size, shuffle=True
-        )
+        train_loader = self.shuffle_data(batch_size)
         self.generator.model.eval()
         self.discriminator.model.train()
         # Labels for generated data, all 0
-        generated_samples_labels = torch.zeros(
-            (batch_size, 1), device=GPU_DEVICE
-        )
+        generated_samples_labels = torch.zeros((batch_size, 1), device=GPU_DEVICE)
         # Load optimizer
         optimizer_discriminator = torch.optim.Adam(
-            self.discriminator.parameters(), lr=lr,
+            self.discriminator.parameters(),
+            lr=0.001,
         )
-        self.generator.model.train()
-        self.discriminator.model.eval()
+        # # self.generator.model.train()
+        # # self.discriminator.model.eval()
         # total data is batch_size * num_epochs
         # Load optimizer
         optimizer_generator = torch.optim.Adam(
-            self.generator.parameters(), lr=lr,
+            self.generator.parameters(),
+            lr=0.0001,
         )
         start = timeit.default_timer()
         # Repeat num_epoch times
@@ -238,26 +229,21 @@ class GAN:
                 # Training the generator
                 self.generator.zero_grad()
                 generated_samples = self.generator(latent_space_samples)
-                output_discriminator_generated = self.discriminator(
-                    generated_samples
-                )
+                output_discriminator_generated = self.discriminator(generated_samples)
                 loss_generator = loss_function(
                     output_discriminator_generated, real_samples_labels
                 )
                 loss_generator.backward()
                 optimizer_generator.step()
                 gen_losses.append(float(loss_generator))
-            if epoch % (x := 10) == 0:
-                # Show loss
-                print(f"Epoch: {epoch} Loss D.: {loss_discriminator}")
-                print(f"Epoch: {epoch} Loss G.: {loss_generator}")
-                print(timeit.default_timer() - start)
-                start = timeit.default_timer()
+
+            # Show loss
+            print(f"Epoch: {epoch} Loss D.: {loss_discriminator}")
+            print(f"Epoch: {epoch} Loss G.: {loss_generator}")
+            print(timeit.default_timer() - start)
+            start = timeit.default_timer()
         return disc_losses, gen_losses
 
     @staticmethod
     def latent_input(batch_size=1, generated=True):
-        return torch.randn(
-            batch_size, 1, 28, 28, device=GPU_DEVICE
-        )
-
+        return torch.randn(batch_size, 1, 28, 28, device=GPU_DEVICE)

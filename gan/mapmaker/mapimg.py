@@ -15,6 +15,15 @@ GPU_DEVICE = torch.device("cuda")  # Default CUDA device
 # GPU_DEVICE = None
 
 
+def load_images(path, batch_size):
+    train_set = []
+    for fname in os.path.listdir(path):
+        fpath = os.path.join(path, fname)
+        img = mpimg.imread(fpath)
+        train_set.append(resize(img, (800, 800, 3)))
+    return torch.from_numpy(numpy.asarray(train_set)).permute(0, 3, 1, 2)
+
+
 def download_image(url):
     basename = os.path.basename(url)
     path = os.path.join("data", "dnd_maps", basename)
@@ -22,9 +31,9 @@ def download_image(url):
         return
     r = requests.get(url, stream=True)
     if r.status_code == 200:
-        with open(path, 'wb') as f:
+        with open(path, "wb") as f:
             r.raw.decode_content = True
-            shutil.copyfileobj(r.raw, f)   
+            shutil.copyfileobj(r.raw, f)
     return path
 
 
@@ -39,9 +48,8 @@ def download_dataset_mapoftheweek():
     webpage = html.fromstring(page.content)
     urls = [
         "http://archive.wizards.com" + imgpath
-        for imgpath in webpage.xpath('//a/@href')
-        if "mapofweek" in imgpath
-        and ".jpg" in imgpath
+        for imgpath in webpage.xpath("//a/@href")
+        if "mapofweek" in imgpath and ".jpg" in imgpath
     ]
     for url in urls:
         print(url)
@@ -70,6 +78,7 @@ def plot_img(fpath):
 
 
 if __name__ == "__main__":
-    fpath = download_dataset_mapoftheweek()
-    print(len(os.listdir("data/dnd_maps/")))
+    # fpath = download_dataset_mapoftheweek()
+    # print(len(os.listdir("data/dnd_maps/")))
+    fpath = ""
     plot_img(fpath)

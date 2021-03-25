@@ -19,16 +19,17 @@ def main():
     latent_space_samples = GAN.latent_input()
     files = sorted(
         [
-            i[:-3] for i in os.listdir("./models")
+            i[:-3]
+            for i in os.listdir("./models")
             if i.startswith("GAN_new") and i.endswith("gen")
             # and not "lower_lr" in i
             and "lower_lr" in i
         ],
-        key=lambda x: float(x.split("_")[-1])
+        key=lambda x: float(x.split("_")[-1]),
     )
     i, j = 1, 0
     xlen = math.floor(math.sqrt(len(files)))
-    ylen = math.ceil(len(files) / xlen ) - 1
+    ylen = math.ceil(len(files) / xlen) - 1
     xlen += 1
 
     _, axes = plt.subplots(xlen, ylen)
@@ -47,7 +48,7 @@ def main():
         # OUTPUT
         print(decision)
         axes[j, i].imshow(generated_samples[0, 0, :, :])
-        if i == xlen-1:
+        if i == xlen - 1:
             i = 0
             j += 1
         else:
@@ -55,6 +56,7 @@ def main():
     latent_space_samples = latent_space_samples.cpu()
     axes[0, 0].imshow(latent_space_samples[0, 0, :, :])
     plt.show()
+
 
 def test_model():
     # load the model
@@ -88,4 +90,3 @@ def test_model():
 if __name__ == "__main__":
     test_model()
     # main()
-    
