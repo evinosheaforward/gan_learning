@@ -220,7 +220,6 @@ class GAN:
         optimizer_discriminator = torch.optim.Adam(
             self.discriminator.parameters(),
             lr=0.001,
-            betas=(0.5, 0.999),
         )
         # # self.generator.model.train()
         # # self.discriminator.model.eval()
@@ -229,7 +228,6 @@ class GAN:
         optimizer_generator = torch.optim.Adam(
             self.generator.parameters(),
             lr=0.0002,
-            betas=(0.5, 0.999),
         )
         start = timeit.default_timer()
         # Repeat num_epoch times
@@ -288,7 +286,8 @@ class GAN:
         output = self.generator(self.latent_input()).cpu()
         if save:
             plt.imsave(
-                output_dir + f"mapmaker_batchnorm_{timeit.default_timer()}".replace(".", "_")
+                output_dir
+                + f"mapmaker_batchnorm_{timeit.default_timer()}".replace(".", "_")
                 + ".jpg",
                 # Using tanh activation function, but rbg is 0..1, so do (X+1)/2.0
                 (output[0, :, :, :].detach().permute(1, 2, 0).numpy() + 1.0) / 2.0,

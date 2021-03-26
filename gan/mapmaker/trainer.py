@@ -32,7 +32,9 @@ def plot_losses(disc_loss, gen_loss):
     for i, losses in enumerate(gen_loss):
         plt.plot(*unzip(enumerate(losses)), label=f"gen: {i}")
     plt.legend()
-    plt.savefig(f"outputs/losses_mapmaker_{timeit.default_timer()}")
+    plt.savefig(
+        f"outputs/losses_mapmaker_{timeit.default_timer()}".replace(".", "_") + ".png"
+    )
     plt.clf()
 
 
@@ -62,13 +64,13 @@ if __name__ == "__main__":
     print(torch.cuda.is_available())
     print(cuda.detect())
     print(torch.cuda.get_device_name(torch.cuda.current_device()))
-    parser = argparse.ArgumentParser(description='Train the mapmaker GAN.')
+    parser = argparse.ArgumentParser(description="Train the mapmaker GAN.")
     parser.add_argument(
-        '--load',
-        dest='model_path',
-        type=str, 
+        "--load",
+        dest="model_path",
+        type=str,
         default=None,
-        help='path to model to load, will start from scratch if not specified',
+        help="path to model to load, will start from scratch if not specified",
     )
     args = parser.parse_args()
     main(model_path=args.model_path)
