@@ -37,19 +37,20 @@ class Flatten(torch.nn.Module):
 
 class Generator(nn.Module):
     def __init__(self):
-        self.in_ch, self.in_x, self.in_y = 3, 20, 20
+        self.in_ch, self.in_x, self.in_y = 8, 8, 8
         super().__init__()
 
         self.model = nn.Sequential(
             Flatten(),
-            nn.Linear(self.in_ch * self.in_x * self.in_y, 16 * 30 * 30),
+            nn.Linear(self.in_ch * self.in_x * self.in_y, 256 * 8 * 8),
             nn.LeakyReLU(0.2),
-            Reshape((16, 30, 30)),
+            nn.Dropout(0.3),
+            Reshape((256, 8, 8)),
             nn.Dropout(0.3),
             nn.ConvTranspose2d(
-                in_channels=16,
+                in_channels=256,
                 out_channels=128,
-                kernel_size=(1, 1),
+                kernel_size=(6, 6),
                 stride=(2, 2),
                 padding=(2, 2),
             ),
@@ -59,19 +60,29 @@ class Generator(nn.Module):
             nn.ConvTranspose2d(
                 in_channels=128,
                 out_channels=64,
-                kernel_size=(1, 1),
+                kernel_size=(6, 6),
                 stride=(2, 2),
                 padding=(2, 2),
             ),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2),
             nn.Dropout(0.3),
-            nn.Conv2d(
+            nn.ConvTranspose2d(
                 in_channels=64,
+                out_channels=32,
+                kernel_size=(6, 6),
+                stride=(2, 2),
+                padding=(2, 2),
+            ),
+            nn.BatchNorm2d(32),
+            nn.LeakyReLU(0.2),
+            nn.Dropout(0.3),
+            nn.ConvTranspose2d(
+                in_channels=32,
                 out_channels=3,
-                kernel_size=(2, 2),
-                stride=(1, 1),
-                padding=(1, 1),
+                kernel_size=(6, 6),
+                stride=(2, 2),
+                padding=(2, 2),
             ),
             nn.Tanh(),
         )
