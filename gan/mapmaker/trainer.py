@@ -11,7 +11,7 @@ from torch import nn
 import torchvision
 import torchvision.transforms as transforms
 
-from gan.mapmaker.models import GAN
+from models import GAN
 
 # Use GPU switch (TODO: make this an arg ofc)
 GPU_DEVICE = torch.device("cuda")  # Default CUDA device
@@ -36,14 +36,12 @@ def plot_losses(disc_loss, gen_loss):
 
 def main():
     # to train saved or load new model
-    if False:
-        gan = GAN.load("models/GAN_new_1182.0918666", mode="train")
+    if True:
+        gan = GAN.load("models/mapmaker/mapmaker_batchnorm_377.4695443", mode="train")
     else:
         gan = GAN()
 
     gan.load_train_data()
-    plt.imshow(gan.train_data[0, :, :, :])
-    return
     disc_losses, gen_losses = [], []
     for i in range(60):
         # Train the models
@@ -53,8 +51,14 @@ def main():
         gen_losses.append(gl)
         print("Train Time:")
         print(timeit.default_timer() - start)
-        gan.save(f"models/GAN_new_lower_lr_{timeit.default_timer()}")
+        gan.save(f"models/mapmaker_batchnorm_{timeit.default_timer()}")
         # plot_losses(disc_losses, gen_losses)
+        output = gan.generator(gan.latent_input()).cpu()
+        plt.imsave(
+            f"outputs/mapmaker_batchnorm_{timeit.default_timer()}".replace(".", "_")
+            + ".jpg",
+            output[0, :, :, :].detach().permute(1, 2, 0).numpy(),
+        )
 
 
 if __name__ == "__main__":

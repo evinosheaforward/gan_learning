@@ -11,6 +11,8 @@ from torch import nn
 import torchvision
 import torchvision.transforms as transforms
 
+import mapimg
+
 # Use GPU switch (TODO: make this an arg ofc)
 GPU_DEVICE = torch.device("cuda")  # Default CUDA device
 
@@ -31,21 +33,22 @@ class Flatten(torch.nn.Module):
 
 class Generator(nn.Module):
     def __init__(self):
-        self.in_ch, self.in_x, self.in_y = 3, 80, 80
+        self.in_ch, self.in_x, self.in_y = 3, 20, 20
         super().__init__()
 
         self.model = nn.Sequential(
             Flatten(),
-            nn.Linear(self.in_ch * self.in_x * self.in_y, 28 * 64 * 64),
+            nn.Linear(self.in_ch * self.in_x * self.in_y, 16 * 64 * 64),
             nn.LeakyReLU(0.2),
-            Reshape((28, 64, 64)),
+            Reshape((16, 64, 64)),
             nn.ConvTranspose2d(
-                in_channels=28,
+                in_channels=16,
                 out_channels=128,
                 kernel_size=(2, 2),
                 stride=(6, 6),
                 padding=(2, 2),
             ),
+            nn.BatchNorm2d(128),
             nn.LeakyReLU(0.2),
             nn.ConvTranspose2d(
                 in_channels=128,
@@ -54,14 +57,16 @@ class Generator(nn.Module):
                 stride=(2, 2),
                 padding=(2, 2),
             ),
+            nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2),
             nn.Conv2d(
                 in_channels=64,
                 out_channels=3,
                 kernel_size=(4, 4),
                 stride=(1, 1),
-                padding=(28, 28),
+                padding=(3, 3),
             ),
+            nn.Tanh(),
         )
         if GPU_DEVICE:
             self.model = self.model.cuda()
@@ -124,6 +129,7 @@ class Discriminator(nn.Module):
             ),
             nn.LeakyReLU(0.2),
             Flatten(),
+            nn.Dropout(0.4),
             nn.Linear(3136, 1),
             nn.Sigmoid(),
         )
@@ -164,7 +170,7 @@ class GAN:
         self.generator.save(path + "gen")
 
     def load_train_data(self, path="data/dnd_maps/"):
-        self.train_data = mapimg.load_data("data/dnd_maps/")
+        self.train_data = mapimg.load_images("data/dnd_maps/")
 
     def shuffle_data(self, batch_size):
         return torch.utils.data.DataLoader(
@@ -193,12 +199,12 @@ class GAN:
         """Train the model by iterating through the dataset
         num_epoch times, printing the duration per epoch
         """
-        batch_size = 32
+        batch_size = 6
         num_epochs = 10
         # Labels for real data:
         # - for discriminator, this is real images
         # - for generator this is what we wanted the discriminator output to be
-        real_samples_labels = torch.all(0.9, (batch_size, 1), device=GPU_DEVICE)
+        real_samples_labels = torch.full((batch_size, 1), 0.9, device=GPU_DEVICE)
         # Init loss functions
         loss_function = nn.BCELoss()
         gen_losses = []
@@ -214,6 +220,7 @@ class GAN:
         optimizer_discriminator = torch.optim.Adam(
             self.discriminator.parameters(),
             lr=0.001,
+            betas=(0.5, 0.999),
         )
         # # self.generator.model.train()
         # # self.discriminator.model.eval()
@@ -221,12 +228,13 @@ class GAN:
         # Load optimizer
         optimizer_generator = torch.optim.Adam(
             self.generator.parameters(),
-            lr=0.0001,
+            lr=0.0002,
+            betas=(0.5, 0.999),
         )
         start = timeit.default_timer()
         # Repeat num_epoch times
         for epoch in range(num_epochs):
-            for n, (images, labels) in enumerate(train_loader):
+            for n, images in enumerate(train_loader):
                 # Iterate through dataset
                 if GPU_DEVICE:
                     images = images.cuda()
@@ -274,6 +282,15 @@ class GAN:
             self.generator.in_x,
             self.generator.in_y,
             device=GPU_DEVICE,
+        )
+
+    def gen_image(self):
+        output = gan.generator(gan.latent_input()).cpu()
+        plt.imsave(
+            f"outputs/mapmaker_batchnorm_{timeit.default_timer()}".replace(".", "_")
+            + ".jpg",
+            # Using tanh activation function, but rbg is 0..1, so do (X+1)/2.0
+            (output[0, :, :, :].detach().permute(1, 2, 0).numpy() + 1.0) / 2.0,
         )
 
     @staticmethod
