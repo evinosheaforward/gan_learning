@@ -1,4 +1,4 @@
-# A learning Project for GANs 
+# A learning Project for GANs
 
 # MNIST Fashion gnerative model
 
@@ -39,8 +39,10 @@
         - used large stride to upsample image size
         - only had latent space of 3x20x20 -> linear layer -> 16x64x64
         - so upsizing from 64x64 to ~1k over the two transpose layers
-        - use one convolution to go down from ~1000x1000 to 750x750 
+        - use one convolution to go down from ~1000x1000 to 750x750
     - not sure if large stride is best way to upsample
     - had gut feeling that I wanted to have at least one layer that reduces input -> output size
     - not sure if I should have any equal input and output layers
         - might want to add one more layer at the end of the generator for better smoothing?
+    - didn't have dropout in generator seems bad
+    - maybe should try smaller images
