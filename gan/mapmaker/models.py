@@ -298,7 +298,9 @@ class GAN:
         )
 
     def generate_image(self, save=True, output_dir="outputs/"):
-        output = self.generator(self.latent_input()).cpu()
+        output = self.generator(self.latent_input()).
+        print("discriminator output:", self.discriminator(output))
+        output = output.cpu()
         if save:
             plt.imsave(
                 output_dir
