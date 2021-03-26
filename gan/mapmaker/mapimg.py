@@ -21,7 +21,7 @@ def load_images(path):
     for fname in os.listdir(path):
         fpath = os.path.join(path, fname)
         img = mpimg.imread(fpath)
-        train_set.append(resize(img, (750, 750, 3)))
+        train_set.append(resize(img, (128, 128, 3)))
     return torch.from_numpy(numpy.asarray(train_set)).float().permute(0, 3, 1, 2)
 
 

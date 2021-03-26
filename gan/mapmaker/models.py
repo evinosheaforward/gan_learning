@@ -42,18 +42,20 @@ class Generator(nn.Module):
 
         self.model = nn.Sequential(
             Flatten(),
-            nn.Linear(self.in_ch * self.in_x * self.in_y, 16 * 64 * 64),
+            nn.Linear(self.in_ch * self.in_x * self.in_y, 16 * 30 * 30),
             nn.LeakyReLU(0.2),
-            Reshape((16, 64, 64)),
+            Reshape((16, 30, 30)),
+            nn.Dropout(0.3),
             nn.ConvTranspose2d(
                 in_channels=16,
                 out_channels=128,
-                kernel_size=(2, 2),
-                stride=(6, 6),
+                kernel_size=(1, 1),
+                stride=(2, 2),
                 padding=(2, 2),
             ),
             nn.BatchNorm2d(128),
             nn.LeakyReLU(0.2),
+            nn.Dropout(0.3),
             nn.ConvTranspose2d(
                 in_channels=128,
                 out_channels=64,
@@ -63,12 +65,13 @@ class Generator(nn.Module):
             ),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2),
+            nn.Dropout(0.3),
             nn.Conv2d(
                 in_channels=64,
                 out_channels=3,
                 kernel_size=(2, 2),
                 stride=(1, 1),
-                padding=(2, 2),
+                padding=(1, 1),
             ),
             nn.Tanh(),
         )
@@ -312,4 +315,4 @@ class GAN:
 
     @staticmethod
     def discriminator_latent_input(batch_size=1, generated=True):
-        return torch.randn(batch_size, 3, 800, 800, device=GPU_DEVICE)
+        return torch.randn(batch_size, 3, 128, 128, device=GPU_DEVICE)
