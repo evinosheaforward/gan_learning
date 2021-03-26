@@ -12,7 +12,7 @@ from torch import nn
 import torchvision
 import torchvision.transforms as transforms
 
-from models import GAN
+from gan.mapmaker.models import GAN
 
 # Use GPU switch (TODO: make this an arg ofc)
 GPU_DEVICE = torch.device("cuda")  # Default CUDA device
@@ -27,10 +27,8 @@ def unzip(indata):
 
 
 def plot_losses(disc_loss, gen_loss):
-    for i, losses in enumerate(disc_loss):
-        plt.plot(*unzip(enumerate(disc_loss)), label=f"disc: {i}")
-    for i, losses in enumerate(gen_loss):
-        plt.plot(*unzip(enumerate(losses)), label=f"gen: {i}")
+    plt.plot(*unzip(enumerate(disc_loss)), label=f"discriminator")
+    plt.plot(*unzip(enumerate(gen_loss)), label=f"generator")
     plt.legend()
     plt.savefig(
         f"outputs/losses_mapmaker_{timeit.default_timer()}".replace(".", "_") + ".png"
@@ -38,7 +36,7 @@ def plot_losses(disc_loss, gen_loss):
     plt.clf()
 
 
-def main(model_path=None):
+def main(model_path=None, noise=False):
     # to train saved or load new model
     if model_path:
         gan = GAN.load(model_path, mode="train")
@@ -50,9 +48,9 @@ def main(model_path=None):
     for i in range(60):
         # Train the models
         start = timeit.default_timer()
-        dl, gl = gan.train()
-        disc_losses.append(dl)
-        gen_losses.append(gl)
+        dl, gl = gan.train(noise=noise)
+        disc_losses.extend(dl)
+        gen_losses.extend(gl)
         print("Train Time:")
         print(timeit.default_timer() - start)
         gan.save(f"models/mapmaker_batchnorm_{timeit.default_timer()}")
@@ -72,8 +70,15 @@ if __name__ == "__main__":
         default=None,
         help="path to model to load, will start from scratch if not specified",
     )
+    parser.add_argument(
+        "--noise",
+        dest="noise",
+        default=False,
+        action="store_true",
+        help="whether or not to add noise to the imags before passing to discriminator during training",
+    )
     args = parser.parse_args()
-    main(model_path=args.model_path)
+    main(model_path=args.model_path, noise=args.noise)
 
 """
 TODO: 

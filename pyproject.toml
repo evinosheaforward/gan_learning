@@ -2,7 +2,7 @@
 name = "gan"
 version = "0.1.0"
 description = "Learning some GANs"
-authors = ["Evin O'Shea evinoshea@gmail.com"]
+authors = ["Evin O'Shea <evinoshea@gmail.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"

@@ -7,4 +7,4 @@ def test_load_data():
     data = data.cpu()
     print(data)
     print(data.size())
-    assert data.size() == (1, 3, 800, 800)
+    assert data.size() == (1, 3, 750, 750)

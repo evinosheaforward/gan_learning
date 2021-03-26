@@ -11,10 +11,14 @@ from torch import nn
 import torchvision
 import torchvision.transforms as transforms
 
-import mapimg
+from gan.mapmaker import mapimg
 
 # Use GPU switch (TODO: make this an arg ofc)
 GPU_DEVICE = torch.device("cuda")  # Default CUDA device
+
+
+def add_noise(in_tensor, percent=0.15):
+    return torch.randn(in_tensor.size(), device=GPU_DEVICE) * percent + (1-percent)
 
 
 class Reshape(torch.nn.Module):
@@ -62,9 +66,9 @@ class Generator(nn.Module):
             nn.Conv2d(
                 in_channels=64,
                 out_channels=3,
-                kernel_size=(4, 4),
+                kernel_size=(2, 2),
                 stride=(1, 1),
-                padding=(3, 3),
+                padding=(2, 2),
             ),
             nn.Tanh(),
         )
@@ -195,7 +199,7 @@ class GAN:
         plt.savefig("results/generator_step_%03d.png" % (step + 1))
         plt.close()
 
-    def train(self):
+    def train(self, noise=False):
         """Train the model by iterating through the dataset
         num_epoch times, printing the duration per epoch
         """
@@ -219,7 +223,7 @@ class GAN:
         # Load optimizer
         optimizer_discriminator = torch.optim.Adam(
             self.discriminator.parameters(),
-            lr=0.001,
+            lr=0.0004,
         )
         # # self.generator.model.train()
         # # self.discriminator.model.eval()
@@ -227,7 +231,7 @@ class GAN:
         # Load optimizer
         optimizer_generator = torch.optim.Adam(
             self.generator.parameters(),
-            lr=0.0002,
+            lr=0.0001,
         )
         start = timeit.default_timer()
         # Repeat num_epoch times
@@ -241,9 +245,14 @@ class GAN:
                 generated_samples = self.generator(latent_space_samples)
                 # label inputs as real, fake
                 all_samples = torch.cat((images, generated_samples))
-                all_samples_labels = torch.cat(
-                    (real_samples_labels, generated_samples_labels)
-                )
+                if noise:
+                    all_samples_labels = add_noise(torch.cat(
+                        (real_samples_labels, generated_samples_labels)
+                    ))
+                else:
+                    all_samples_labels = torch.cat(
+                        (real_samples_labels, generated_samples_labels)
+                    )
                 # Training the discriminator
                 self.discriminator.zero_grad()
                 output_discriminator = self.discriminator(all_samples)
