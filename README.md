@@ -46,3 +46,4 @@
         - might want to add one more layer at the end of the generator for better smoothing?
     - didn't have dropout in generator seems bad
     - maybe should try smaller images
+    - Applying `2*X-1` on training images to change range from 0..1 -> -1..1 seems to make training more stable and the learning seems much better
