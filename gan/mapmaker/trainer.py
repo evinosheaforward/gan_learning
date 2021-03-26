@@ -31,7 +31,8 @@ def plot_losses(disc_loss, gen_loss):
     for i, losses in enumerate(gen_loss):
         plt.plot(*unzip(enumerate(losses)), label=f"gen: {i}")
     plt.legend()
-    plt.show()
+    plt.savefig(f"outputs/losses_mapmaker_{timeit.default_timer()}")
+    plt.clf()
 
 
 def main():
@@ -52,13 +53,8 @@ def main():
         print("Train Time:")
         print(timeit.default_timer() - start)
         gan.save(f"models/mapmaker_batchnorm_{timeit.default_timer()}")
-        # plot_losses(disc_losses, gen_losses)
-        output = gan.generator(gan.latent_input()).cpu()
-        plt.imsave(
-            f"outputs/mapmaker_batchnorm_{timeit.default_timer()}".replace(".", "_")
-            + ".jpg",
-            output[0, :, :, :].detach().permute(1, 2, 0).numpy(),
-        )
+        plot_losses(disc_losses, gen_losses)
+        gan.generate_image(save=True)
 
 
 if __name__ == "__main__":

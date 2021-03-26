@@ -284,14 +284,20 @@ class GAN:
             device=GPU_DEVICE,
         )
 
-    def gen_image(self):
+    def generate_image(self, save=True):
         output = gan.generator(gan.latent_input()).cpu()
-        plt.imsave(
-            f"outputs/mapmaker_batchnorm_{timeit.default_timer()}".replace(".", "_")
-            + ".jpg",
-            # Using tanh activation function, but rbg is 0..1, so do (X+1)/2.0
-            (output[0, :, :, :].detach().permute(1, 2, 0).numpy() + 1.0) / 2.0,
-        )
+        if save:
+            plt.imsave(
+                f"outputs/mapmaker_batchnorm_{timeit.default_timer()}".replace(".", "_")
+                + ".jpg",
+                # Using tanh activation function, but rbg is 0..1, so do (X+1)/2.0
+                (output[0, :, :, :].detach().permute(1, 2, 0).numpy() + 1.0) / 2.0,
+            )
+        else:
+            plt.imshow(
+                (output[0, :, :, :].detach().permute(1, 2, 0).numpy() + 1.0) / 2.0,
+            )
+            plt.show()
 
     @staticmethod
     def discriminator_latent_input(batch_size=1, generated=True):
