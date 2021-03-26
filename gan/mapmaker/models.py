@@ -266,7 +266,10 @@ class GAN:
                 latent_space_samples = self.latent_input(batch_size)
                 # Training the generator
                 self.generator.zero_grad()
-                generated_samples = self.generator(latent_space_samples)
+                if noise:
+                    generated_samples = add_noise(self.generator(latent_space_samples))
+                else:
+                    generated_samples = self.generator(latent_space_samples)
                 output_discriminator_generated = self.discriminator(generated_samples)
                 loss_generator = loss_function(
                     output_discriminator_generated, real_samples_labels
