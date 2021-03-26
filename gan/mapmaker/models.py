@@ -284,11 +284,11 @@ class GAN:
             device=GPU_DEVICE,
         )
 
-    def generate_image(self, save=True):
-        output = gan.generator(gan.latent_input()).cpu()
+    def generate_image(self, save=True, output_dir="outputs/"):
+        output = self.generator(self.latent_input()).cpu()
         if save:
             plt.imsave(
-                f"outputs/mapmaker_batchnorm_{timeit.default_timer()}".replace(".", "_")
+                output_dir + f"mapmaker_batchnorm_{timeit.default_timer()}".replace(".", "_")
                 + ".jpg",
                 # Using tanh activation function, but rbg is 0..1, so do (X+1)/2.0
                 (output[0, :, :, :].detach().permute(1, 2, 0).numpy() + 1.0) / 2.0,

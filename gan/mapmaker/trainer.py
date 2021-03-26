@@ -1,3 +1,4 @@
+import argparse
 from functools import partial, reduce
 import math
 from operator import __add__
@@ -35,10 +36,10 @@ def plot_losses(disc_loss, gen_loss):
     plt.clf()
 
 
-def main():
+def main(model_path=None):
     # to train saved or load new model
-    if True:
-        gan = GAN.load("models/mapmaker/mapmaker_batchnorm_377.4695443", mode="train")
+    if model_path:
+        gan = GAN.load(model_path, mode="train")
     else:
         gan = GAN()
 
@@ -54,14 +55,23 @@ def main():
         print(timeit.default_timer() - start)
         gan.save(f"models/mapmaker_batchnorm_{timeit.default_timer()}")
         plot_losses(disc_losses, gen_losses)
-        gan.generate_image(save=True)
+        gan.generate_image()
 
 
 if __name__ == "__main__":
     print(torch.cuda.is_available())
     print(cuda.detect())
     print(torch.cuda.get_device_name(torch.cuda.current_device()))
-    main()
+    parser = argparse.ArgumentParser(description='Train the mapmaker GAN.')
+    parser.add_argument(
+        '--load',
+        dest='model_path',
+        type=str, 
+        default=None,
+        help='path to model to load, will start from scratch if not specified',
+    )
+    args = parser.parse_args()
+    main(model_path=args.model_path)
 
 """
 TODO: 
