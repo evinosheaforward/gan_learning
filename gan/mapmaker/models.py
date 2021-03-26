@@ -45,6 +45,7 @@ class Generator(nn.Module):
             nn.Linear(self.in_ch * self.in_x * self.in_y, 16 * 64 * 64),
             nn.LeakyReLU(0.2),
             Reshape((16, 64, 64)),
+            nn.Dropout(0.3),
             nn.ConvTranspose2d(
                 in_channels=16,
                 out_channels=128,
@@ -54,6 +55,7 @@ class Generator(nn.Module):
             ),
             nn.BatchNorm2d(128),
             nn.LeakyReLU(0.2),
+            nn.Dropout(0.3),
             nn.ConvTranspose2d(
                 in_channels=128,
                 out_channels=64,
@@ -63,6 +65,7 @@ class Generator(nn.Module):
             ),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2),
+            nn.Dropout(0.3),
             nn.Conv2d(
                 in_channels=64,
                 out_channels=3,
