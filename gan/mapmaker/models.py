@@ -217,7 +217,7 @@ class GAN:
         """Train the model by iterating through the dataset
         num_epoch times, printing the duration per epoch
         """
-        batch_size = 6
+        batch_size = 36
         num_epochs = 10
         # Labels for real data:
         # - for discriminator, this is real images
