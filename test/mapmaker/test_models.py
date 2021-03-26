@@ -17,7 +17,9 @@ def test_generator():
 def test_discriminator():
     """validate input / output sizes"""
     gan = models.GAN()
-    output = gan.discriminator(gan.discriminator_latent_input()).cpu()
+    input_data = gan.discriminator_latent_input()
+    print(input_data.cpu().size())
+    output = gan.discriminator(input_data).cpu()
     print(output)
     print(output.size())
     assert output.size() == (1, 1)
