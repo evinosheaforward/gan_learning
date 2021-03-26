@@ -22,7 +22,16 @@ def load_images(path):
         fpath = os.path.join(path, fname)
         img = mpimg.imread(fpath)
         train_set.append(resize(img, (750, 750, 3)))
-    return torch.from_numpy(numpy.asarray(train_set)).float().permute(0, 3, 1, 2)
+    return (
+        torch.from_numpy(
+            numpy.asarray(train_set)
+        # given the fact that the activation is tanh, 
+        # the output of the generator is applied with f(x): (x+1)/2
+        # to get RGB images (0..1)
+        # so, applying f-inverse(x): (x*2)-1 
+        # to the training data to get training data domain (-1..1)
+        ).float().permute(0, 3, 1, 2) * 2.0
+    ) - 1.0
 
 
 def download_image(url):
