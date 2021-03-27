@@ -151,7 +151,8 @@ class Discriminator(nn.Module):
             nn.LeakyReLU(0.2),
             Flatten(),
             nn.Dropout(0.4),
-            nn.Linear(4096, 1),
+            nn.Linear(4096, 2048),
+            nn.Linear(2048, 1),
             nn.Sigmoid(),
         )
         if GPU_DEVICE:
@@ -220,8 +221,8 @@ class GAN:
         """Train the model by iterating through the dataset
         num_epoch times, printing the duration per epoch
         """
-        batch_size = 36
-        num_epochs = 160
+        batch_size = 25
+        num_epochs = 50
         # Labels for real data:
         # - for discriminator, this is real images
         # - for generator this is what we wanted the discriminator output to be
@@ -296,11 +297,12 @@ class GAN:
                 optimizer_generator.step()
                 gen_losses.append(float(loss_generator))
 
-            # Show loss
-            print(f"Epoch: {epoch} Loss D.: {loss_discriminator}")
-            print(f"Epoch: {epoch} Loss G.: {loss_generator}")
-            print(timeit.default_timer() - start)
-            start = timeit.default_timer()
+            if epoch % 10 == 0:
+                # Show loss
+                print(f"Epoch: {epoch} Loss D.: {loss_discriminator}")
+                print(f"Epoch: {epoch} Loss G.: {loss_generator}")
+                print(timeit.default_timer() - start)
+                start = timeit.default_timer()
         return disc_losses, gen_losses
 
     def latent_input(self, batch_size=1, generated=True):
