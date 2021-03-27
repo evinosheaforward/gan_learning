@@ -1,4 +1,5 @@
 from gan.mapmaker import models
+from gan.mapmaker import mapimg
 
 
 def test_generator():
@@ -14,11 +15,25 @@ def test_generator():
     assert output.size() == (1, 3, 128, 128)
 
 
-def test_discriminator():
+def test_discriminator_generator():
     """validate input / output sizes"""
     gan = models.GAN()
     input_data = gan.discriminator_latent_input()
-    print(input_data.cpu().size())
+    print(input_data.size()) 
+    assert input_data.cpu().size() == (1, 3, 128, 128)
+    print(input_data.type())
+    output = gan.discriminator(input_data).cpu()
+    print(output)
+    print(output.size())
+    assert output.size() == (1, 1)
+
+def test_discriminator_corpus():
+    """validate input / output sizes"""
+    gan = models.GAN()
+    input_data = mapimg.load_images("data/dnd_maps", one=True).cuda()
+    print(input_data.size())
+    print(input_data.type())
+    assert input_data.cpu().size() == (1, 3, 128, 128)
     output = gan.discriminator(input_data).cpu()
     print(output)
     print(output.size())

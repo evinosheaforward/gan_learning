@@ -26,7 +26,7 @@ def load_images(path, one=False):
         train_set.append(resize(img, (128, 128, 3)))
         if one:
             break
-    return (
+    return ((
         (
             torch.from_numpy(
                 numpy.asarray(train_set)
@@ -38,7 +38,7 @@ def load_images(path, one=False):
             )
         ).permute(0, 3, 1, 2)
         * 2.0
-    ) - 1.0
+    ) - 1.0).float()
 
 
 def load_image(fpath):

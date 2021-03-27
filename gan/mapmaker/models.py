@@ -30,12 +30,12 @@ class Reshape(torch.nn.Module):
         self.shape = shape
 
     def forward(self, x):
-        return x.view(x.shape[0], *self.shape)
+        return x.reshape(x.shape[0], *self.shape)
 
 
 class Flatten(torch.nn.Module):
     def forward(self, x):
-        return x.view(x.shape[0], -1)
+        return x.reshape(x.shape[0], -1)
 
 
 class Generator(nn.Module):

@@ -27,8 +27,8 @@ def test_load_data():
 def test_add_noise():
     data = mapimg.load_images("data/dnd_maps", one=True)
     data = models.add_noise(data.cuda()).cpu()
-    plt.imshow((data[0, :, :, :].permute(1, 2, 0) + 1.0) / 2.0)
-    plt.show()
+    # plt.imshow((data[0, :, :, :].permute(1, 2, 0) + 1.0) / 2.0)
+    # plt.show()
     maximum = torch.max(data)
     minimum = torch.min(data)
     print(data)
