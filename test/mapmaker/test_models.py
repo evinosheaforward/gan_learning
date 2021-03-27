@@ -24,5 +24,6 @@ def test_discriminator():
     print(output.size())
     assert output.size() == (1, 1)
 
+
 def test_train_loop():
     pass

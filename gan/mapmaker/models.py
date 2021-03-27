@@ -18,7 +18,10 @@ GPU_DEVICE = torch.device("cuda")  # Default CUDA device
 
 
 def add_noise(in_tensor, percent=0.15):
-    return torch.randn(in_tensor.size(), device=GPU_DEVICE) * percent + (1-percent)
+    return (
+        torch.rand(in_tensor.size(), device=GPU_DEVICE) * percent
+        + (1 - percent) * in_tensor
+    )
 
 
 class Reshape(torch.nn.Module):
@@ -260,9 +263,10 @@ class GAN:
                 # label inputs as real, fake
                 all_samples = torch.cat((images, generated_samples))
                 if noise:
-                    all_samples_labels = add_noise(torch.cat(
-                        (real_samples_labels, generated_samples_labels)
-                    ), percent=noise)
+                    all_samples_labels = add_noise(
+                        torch.cat((real_samples_labels, generated_samples_labels)),
+                        percent=noise,
+                    )
                 else:
                     all_samples_labels = torch.cat(
                         (real_samples_labels, generated_samples_labels)
