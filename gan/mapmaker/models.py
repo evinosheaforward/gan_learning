@@ -18,6 +18,8 @@ GPU_DEVICE = torch.device("cuda")  # Default CUDA device
 
 
 def add_noise(in_tensor, percent=0.15):
+    if percent > 1:
+        percent = percent / 100.0
     return torch.randn(in_tensor.size(), device=GPU_DEVICE) * percent + (1-percent)
 
 
@@ -262,7 +264,7 @@ class GAN:
                 if noise:
                     all_samples_labels = add_noise(torch.cat(
                         (real_samples_labels, generated_samples_labels)
-                    ))
+                    ), percent=noise)
                 else:
                     all_samples_labels = torch.cat(
                         (real_samples_labels, generated_samples_labels)
@@ -281,7 +283,7 @@ class GAN:
                 # Training the generator
                 self.generator.zero_grad()
                 if noise:
-                    generated_samples = add_noise(self.generator(latent_space_samples))
+                    generated_samples = self.generator(latent_space_samples)
                 else:
                     generated_samples = self.generator(latent_space_samples)
                 output_discriminator_generated = self.discriminator(generated_samples)
