@@ -1,4 +1,4 @@
-# A learning Project for GANs 
+# A learning Project for GANs
 
 # MNIST Fashion gnerative model
 
@@ -7,9 +7,9 @@
     - found larger batch size helps because models train
     - realized that relu + dropout is not best practice compared to leakyrelu
     - realized that method of upsampling was not so good along with the fact that
-    - trained a model with too high of a loss ration, got ![these results](outputs/Loss_Rate_Too_High_Training_Snapshots.png) where the snapshots are taken every 10 epochs
-    - trained model with lower loss ratio (0.0002) and got better results. ![here are the training snapshots](outputs/Working_model_1_Training_snapshots.png)
-        - there are also sample outputs ![here](outputs/Working_model_1_sample_outputs_1.png) and ![here](outputs/Working_model_1_sample_outputs_2.png)
+    - trained a model with too high of a loss ration, got poor results where the snapshots are taken every 10 epochs
+    - trained model with lower loss ratio (0.0002) and got better results. 
+        - there are also sample outputs (I lost them, but they are in the git history I *think*)
 
 ## Next Steps:
     - create personal dataset for image generation
@@ -22,6 +22,16 @@
         - GPU: 30 Seconds
 
 # DND Map Maker (mapmaker)
+
+# Outputs:
+
+    - check out the sample_runs dir
+    - note the model is built to dist/ in case you want to pip install it
+    - sample outputs are in `sample_runs`:
+        -
+
+
+## Notes, thoughts, learning:
     - dataset is really small ~360 images (from map of the week)
         - pruned a few by hand after downloading the script
         - more data might be needed
@@ -39,8 +49,23 @@
         - used large stride to upsample image size
         - only had latent space of 3x20x20 -> linear layer -> 16x64x64
         - so upsizing from 64x64 to ~1k over the two transpose layers
-        - use one convolution to go down from ~1000x1000 to 750x750 
+        - use one convolution to go down from ~1000x1000 to 750x750
     - not sure if large stride is best way to upsample
     - had gut feeling that I wanted to have at least one layer that reduces input -> output size
     - not sure if I should have any equal input and output layers
         - might want to add one more layer at the end of the generator for better smoothing?
+    - didn't have dropout in generator seems bad
+    - maybe should try smaller images
+    - smaller images worked better
+    - pruned the corpus I was using down to 225 images from 360 by removing maps that were of a different scale (geography not dungeon maps),
+    - got real results!
+        - model oscilated in quality a lot
+        - used 10% noise, seemed to work well
+        - have been using 0.9 as labels for corpus data
+    - not sure how to procceed since images are coming out looking pretty sweet, but the 128x128 size is not great
+        - thinking of training another model to improve the output of this model, e.g.:
+            - use one of these models as input
+            - create a gan that scales up from 128x128 to e.g. 1024x1024
+            - corpus would have to load in at the larger size - trivial 
+            - memory might be tricky with larger images / model for larger images
+                - number of layers might be able to be small

@@ -18,7 +18,10 @@ GPU_DEVICE = torch.device("cuda")  # Default CUDA device
 
 
 def add_noise(in_tensor, percent=0.15):
-    return torch.randn(in_tensor.size(), device=GPU_DEVICE) * percent + (1-percent)
+    return (
+        torch.rand(in_tensor.size(), device=GPU_DEVICE) * percent
+        + (1.0 - percent) * in_tensor
+    )
 
 
 class Reshape(torch.nn.Module):
@@ -27,47 +30,61 @@ class Reshape(torch.nn.Module):
         self.shape = shape
 
     def forward(self, x):
-        return x.view(x.shape[0], *self.shape)
+        return x.reshape(x.shape[0], *self.shape)
 
 
 class Flatten(torch.nn.Module):
     def forward(self, x):
-        return x.view(x.shape[0], -1)
+        return x.reshape(x.shape[0], -1)
 
 
 class Generator(nn.Module):
     def __init__(self):
-        self.in_ch, self.in_x, self.in_y = 3, 20, 20
+        self.in_ch, self.in_x, self.in_y = 8, 8, 8
         super().__init__()
 
         self.model = nn.Sequential(
             Flatten(),
-            nn.Linear(self.in_ch * self.in_x * self.in_y, 16 * 64 * 64),
+            nn.Linear(self.in_ch * self.in_x * self.in_y, 256 * 8 * 8),
             nn.LeakyReLU(0.2),
-            Reshape((16, 64, 64)),
+            nn.Dropout(0.3),
+            Reshape((256, 8, 8)),
+            nn.Dropout(0.3),
             nn.ConvTranspose2d(
-                in_channels=16,
+                in_channels=256,
                 out_channels=128,
-                kernel_size=(2, 2),
-                stride=(6, 6),
+                kernel_size=(6, 6),
+                stride=(2, 2),
                 padding=(2, 2),
             ),
             nn.BatchNorm2d(128),
             nn.LeakyReLU(0.2),
+            nn.Dropout(0.3),
             nn.ConvTranspose2d(
                 in_channels=128,
                 out_channels=64,
-                kernel_size=(1, 1),
+                kernel_size=(6, 6),
                 stride=(2, 2),
                 padding=(2, 2),
             ),
             nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2),
-            nn.Conv2d(
+            nn.Dropout(0.3),
+            nn.ConvTranspose2d(
                 in_channels=64,
+                out_channels=32,
+                kernel_size=(6, 6),
+                stride=(2, 2),
+                padding=(2, 2),
+            ),
+            nn.BatchNorm2d(32),
+            nn.LeakyReLU(0.2),
+            nn.Dropout(0.3),
+            nn.ConvTranspose2d(
+                in_channels=32,
                 out_channels=3,
-                kernel_size=(2, 2),
-                stride=(1, 1),
+                kernel_size=(6, 6),
+                stride=(2, 2),
                 padding=(2, 2),
             ),
             nn.Tanh(),
@@ -100,41 +117,42 @@ class Discriminator(nn.Module):
             nn.Conv2d(
                 in_channels=3,
                 out_channels=64,
-                kernel_size=(9, 9),
-                stride=(3, 3),
-                padding=(1, 1),
+                kernel_size=(6, 6),
+                stride=(2, 2),
+                padding=(2, 2),
             ),
             nn.LeakyReLU(0.2),
             nn.Dropout(0.3),
             nn.Conv2d(
                 in_channels=64,
                 out_channels=64,
-                kernel_size=(9, 9),
-                stride=(3, 3),
-                padding=(1, 1),
+                kernel_size=(6, 6),
+                stride=(2, 2),
+                padding=(2, 2),
             ),
             nn.LeakyReLU(0.2),
             nn.Dropout(0.3),
             nn.Conv2d(
                 in_channels=64,
                 out_channels=64,
-                kernel_size=(9, 9),
-                stride=(3, 3),
-                padding=(1, 1),
+                kernel_size=(6, 6),
+                stride=(2, 2),
+                padding=(2, 2),
             ),
             nn.LeakyReLU(0.2),
             nn.Dropout(0.3),
             nn.Conv2d(
                 in_channels=64,
                 out_channels=64,
-                kernel_size=(3, 3),
-                stride=(4, 4),
-                padding=(1, 1),
+                kernel_size=(6, 6),
+                stride=(2, 2),
+                padding=(2, 2),
             ),
             nn.LeakyReLU(0.2),
             Flatten(),
             nn.Dropout(0.4),
-            nn.Linear(3136, 1),
+            nn.Linear(4096, 2048),
+            nn.Linear(2048, 1),
             nn.Sigmoid(),
         )
         if GPU_DEVICE:
@@ -203,8 +221,8 @@ class GAN:
         """Train the model by iterating through the dataset
         num_epoch times, printing the duration per epoch
         """
-        batch_size = 6
-        num_epochs = 10
+        batch_size = 25
+        num_epochs = 50
         # Labels for real data:
         # - for discriminator, this is real images
         # - for generator this is what we wanted the discriminator output to be
@@ -246,9 +264,10 @@ class GAN:
                 # label inputs as real, fake
                 all_samples = torch.cat((images, generated_samples))
                 if noise:
-                    all_samples_labels = add_noise(torch.cat(
-                        (real_samples_labels, generated_samples_labels)
-                    ))
+                    all_samples_labels = add_noise(
+                        torch.cat((real_samples_labels, generated_samples_labels)),
+                        percent=noise,
+                    )
                 else:
                     all_samples_labels = torch.cat(
                         (real_samples_labels, generated_samples_labels)
@@ -267,7 +286,7 @@ class GAN:
                 # Training the generator
                 self.generator.zero_grad()
                 if noise:
-                    generated_samples = add_noise(self.generator(latent_space_samples))
+                    generated_samples = self.generator(latent_space_samples)
                 else:
                     generated_samples = self.generator(latent_space_samples)
                 output_discriminator_generated = self.discriminator(generated_samples)
@@ -278,11 +297,12 @@ class GAN:
                 optimizer_generator.step()
                 gen_losses.append(float(loss_generator))
 
-            # Show loss
-            print(f"Epoch: {epoch} Loss D.: {loss_discriminator}")
-            print(f"Epoch: {epoch} Loss G.: {loss_generator}")
-            print(timeit.default_timer() - start)
-            start = timeit.default_timer()
+            if epoch % 10 == 0:
+                # Show loss
+                print(f"Epoch: {epoch} Loss D.: {loss_discriminator}")
+                print(f"Epoch: {epoch} Loss G.: {loss_generator}")
+                print(timeit.default_timer() - start)
+                start = timeit.default_timer()
         return disc_losses, gen_losses
 
     def latent_input(self, batch_size=1, generated=True):
@@ -312,4 +332,4 @@ class GAN:
 
     @staticmethod
     def discriminator_latent_input(batch_size=1, generated=True):
-        return torch.randn(batch_size, 3, 800, 800, device=GPU_DEVICE)
+        return torch.randn(batch_size, 3, 128, 128, device=GPU_DEVICE)
