@@ -79,7 +79,7 @@ if __name__ == "__main__":
         help="whether or not to add noise to the imags before passing to discriminator during training",
     )
     args = parser.parse_args()
-    main(model_path=args.model_path, noise=args.noise)
+    main(model_path=args.model_path, noise=args.noise/100.0)
 
 """
 TODO: 

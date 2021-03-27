@@ -18,8 +18,6 @@ GPU_DEVICE = torch.device("cuda")  # Default CUDA device
 
 
 def add_noise(in_tensor, percent=0.15):
-    if percent > 1:
-        percent = percent / 100.0
     return torch.randn(in_tensor.size(), device=GPU_DEVICE) * percent + (1-percent)
 
 
