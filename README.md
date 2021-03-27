@@ -59,6 +59,9 @@
     - smaller images worked better
     - pruned the corpus I was using down to 225 images from 360 by removing maps that were of a different scale (geography not dungeon maps),
     - got real results!
+        - model oscilated in quality a lot
+        - used 10% noise, seemed to work well
+        - have been using 0.9 as labels for corpus data
     - not sure how to procceed since images are coming out looking pretty sweet, but the 128x128 size is not great
         - thinking of training another model to improve the output of this model, e.g.:
             - use one of these models as input
