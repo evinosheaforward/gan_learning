@@ -218,7 +218,7 @@ class GAN:
         num_epoch times, printing the duration per epoch
         """
         batch_size = 36
-        num_epochs = 20
+        num_epochs = 160
         # Labels for real data:
         # - for discriminator, this is real images
         # - for generator this is what we wanted the discriminator output to be
