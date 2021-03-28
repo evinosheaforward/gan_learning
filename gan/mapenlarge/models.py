@@ -9,9 +9,10 @@ from numba import jit, cuda
 import torch
 from torch import nn
 import torchvision
-from torchvision import datasets, transforms
+import torchvision.transforms as transforms
 
-from gan.mapmaker import mapimg
+from gan.mapenlarge import mapimg
+from gan.mapmaker.models import MapMaker
 
 # Use GPU switch (TODO: make this an arg ofc)
 GPU_DEVICE = torch.device("cuda")  # Default CUDA device
@@ -40,26 +41,9 @@ class Flatten(torch.nn.Module):
 
 class Generator(nn.Module):
     def __init__(self):
-        self.in_ch, self.in_x, self.in_y = 8, 8, 8
         super().__init__()
 
         self.model = nn.Sequential(
-            Flatten(),
-            nn.Linear(self.in_ch * self.in_x * self.in_y, 256 * 8 * 8),
-            nn.LeakyReLU(0.2),
-            nn.Dropout(0.3),
-            Reshape((256, 8, 8)),
-            nn.Dropout(0.3),
-            nn.ConvTranspose2d(
-                in_channels=256,
-                out_channels=128,
-                kernel_size=(6, 6),
-                stride=(2, 2),
-                padding=(2, 2),
-            ),
-            nn.BatchNorm2d(128),
-            nn.LeakyReLU(0.2),
-            nn.Dropout(0.3),
             nn.ConvTranspose2d(
                 in_channels=128,
                 out_channels=64,
@@ -73,16 +57,6 @@ class Generator(nn.Module):
             nn.ConvTranspose2d(
                 in_channels=64,
                 out_channels=32,
-                kernel_size=(6, 6),
-                stride=(2, 2),
-                padding=(2, 2),
-            ),
-            nn.BatchNorm2d(32),
-            nn.LeakyReLU(0.2),
-            nn.Dropout(0.3),
-            nn.ConvTranspose2d(
-                in_channels=32,
-                out_channels=3,
                 kernel_size=(6, 6),
                 stride=(2, 2),
                 padding=(2, 2),
@@ -117,42 +91,32 @@ class Discriminator(nn.Module):
             nn.Conv2d(
                 in_channels=3,
                 out_channels=64,
-                kernel_size=(6, 6),
-                stride=(2, 2),
-                padding=(2, 2),
+                kernel_size=(8, 8),
+                stride=(4, 4),
+                padding=(3, 3),
             ),
             nn.LeakyReLU(0.2),
             nn.Dropout(0.3),
             nn.Conv2d(
                 in_channels=64,
                 out_channels=64,
-                kernel_size=(6, 6),
-                stride=(2, 2),
-                padding=(2, 2),
+                kernel_size=(8, 8),
+                stride=(4, 4),
+                padding=(3, 3),
             ),
             nn.LeakyReLU(0.2),
             nn.Dropout(0.3),
             nn.Conv2d(
                 in_channels=64,
                 out_channels=64,
-                kernel_size=(6, 6),
-                stride=(2, 2),
-                padding=(2, 2),
-            ),
-            nn.LeakyReLU(0.2),
-            nn.Dropout(0.3),
-            nn.Conv2d(
-                in_channels=64,
-                out_channels=64,
-                kernel_size=(6, 6),
-                stride=(2, 2),
-                padding=(2, 2),
+                kernel_size=(8, 8),
+                stride=(4, 4),
+                padding=(3, 3),
             ),
             nn.LeakyReLU(0.2),
             Flatten(),
             nn.Dropout(0.4),
-            nn.Linear(4096, 1),
-            nn.Linear(2048, 1),
+            nn.Linear(1024, 1),
             nn.Sigmoid(),
         )
         if GPU_DEVICE:
@@ -175,10 +139,18 @@ class Discriminator(nn.Module):
         torch.save(self.model.state_dict(), path)
 
 
-class MapMaker:
-    def __init__(self, discriminator=Discriminator(), generator=Generator()):
+class MapEnlarge:
+    def __init__(
+        self,
+        discriminator=Discriminator(),
+        generator=Generator(),
+        mapmaker="models/mapmaker/mapmaker_batchnorm_3746.8546998",
+    ):
         self.discriminator = discriminator
         self.generator = generator
+        if mapmaker is None:
+            raise ValueError("Mapmaker not specified")
+        self.mapmaker = MapMaker.load(mapmaker)
 
     @classmethod
     def load(cls, path, mode="eval"):
@@ -192,7 +164,7 @@ class MapMaker:
         self.generator.save(path + "gen")
 
     def load_train_data(self, path="data/dnd_maps/"):
-        self.train_data = mapimg.load_images_torchvision("data/dnd_maps/")
+        self.train_data = mapimg.load_images("data/dnd_maps/")
 
     def shuffle_data(self, batch_size):
         return torch.utils.data.DataLoader(
@@ -201,7 +173,7 @@ class MapMaker:
 
     def performance(self, step, n_samples=5):
         # prepare fake examples
-        generated_samples = gan.generator(GAN.latent_input(n_samples))
+        generated_samples = gan.generator(MapEnlarge.latent_input(n_samples))
         generated_samples = generated_samples.detach()
         if GPU_DEVICE:
             generated_samples = generated_samples.cpu()
@@ -221,8 +193,8 @@ class MapMaker:
         """Train the model by iterating through the dataset
         num_epoch times, printing the duration per epoch
         """
-        batch_size = 1
-        num_epochs = 10
+        batch_size = 25
+        num_epochs = 50
         # Labels for real data:
         # - for discriminator, this is real images
         # - for generator this is what we wanted the discriminator output to be
@@ -270,7 +242,7 @@ class MapMaker:
                     )
                 else:
                     all_samples_labels = torch.cat(
-                        (real_samples_labels * 2.0 - 1.0, generated_samples_labels)
+                        (real_samples_labels, generated_samples_labels)
                     )
                 # Training the discriminator
                 self.discriminator.zero_grad()
@@ -306,34 +278,50 @@ class MapMaker:
         return disc_losses, gen_losses
 
     def latent_input(self, batch_size=1, generated=True):
-        return torch.randn(
-            batch_size,
-            self.generator.in_ch,
-            self.generator.in_x,
-            self.generator.in_y,
-            device=GPU_DEVICE,
-        )
+        return self.mapmaker.generate_image(return_it=True, save=False)
 
-    def generate_image(self, return_it=False, save=True, output_dir="outputs/"):
-        output = self.generator(self.latent_input())
+    def generate_image(self, save=True, output_dir="outputs/"):
+        output = self.generator(self.latent_input()).cpu()
         if save:
             plt.imsave(
                 output_dir
-                + f"mapmaker_batchnorm_{timeit.default_timer()}".replace(".", "_")
+                + f"mapenlarge_batchnorm_{timeit.default_timer()}".replace(".", "_")
                 + ".jpg",
                 # Using tanh activation function, but rbg is 0..1, so do (X+1)/2.0
-                (output[0, :, :, :].detach().cpu().permute(1, 2, 0).numpy() + 1.0)
-                / 2.0,
+                (output[0, :, :, :].detach().permute(1, 2, 0).numpy() + 1.0) / 2.0,
             )
-        elif return_it:
-            return output
         else:
             plt.imshow(
-                (output[0, :, :, :].detach().cpu().permute(1, 2, 0).numpy() + 1.0)
-                / 2.0,
+                (output[0, :, :, :].detach().permute(1, 2, 0).numpy() + 1.0) / 2.0,
             )
             plt.show()
 
     @staticmethod
     def discriminator_latent_input(batch_size=1, generated=True):
-        return torch.randn(batch_size, 3, 128, 128, device=GPU_DEVICE)
+        return torch.randn(batch_size, 3, 1024, 1024, device=GPU_DEVICE)
+
+    def generate_from_file(self, fpath, save=True, output_dir="outputs/"):
+        img = mpimg.imread(fpath).copy()
+        input_img = (
+            (
+                (torch.from_numpy(mpimg.imread(fpath).copy()).cuda()).permute(
+                    0, 3, 1, 2
+                )
+                * 2.0
+            )
+            - 1.0
+        ).float()
+        output = self.generator(input_img).cpu()
+        if save:
+            plt.imsave(
+                output_dir
+                + f"mapenlarge_batchnorm_{timeit.default_timer()}".replace(".", "_")
+                + ".jpg",
+                # Using tanh activation function, but rbg is 0..1, so do (X+1)/2.0
+                (output[0, :, :, :].detach().permute(1, 2, 0).numpy() + 1.0) / 2.0,
+            )
+        else:
+            plt.imshow(
+                (output[0, :, :, :].detach().permute(1, 2, 0).numpy() + 1.0) / 2.0,
+            )
+            plt.show()

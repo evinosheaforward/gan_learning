@@ -12,7 +12,7 @@ from torch import nn
 import torchvision
 import torchvision.transforms as transforms
 
-from gan.mapmaker.models import MapMaker
+from gan.mapenlarge.models import MapEnlarge
 
 # Use GPU switch (TODO: make this an arg ofc)
 GPU_DEVICE = torch.device("cuda")  # Default CUDA device
@@ -31,7 +31,7 @@ def plot_losses(disc_loss, gen_loss):
     plt.plot(*unzip(enumerate(gen_loss)), label=f"generator")
     plt.legend()
     plt.savefig(
-        f"outputs/losses_mapmaker_{timeit.default_timer()}".replace(".", "_") + ".png"
+        f"outputs/losses_mapenlarge_{timeit.default_timer()}".replace(".", "_") + ".png"
     )
     plt.clf()
 
@@ -39,9 +39,9 @@ def plot_losses(disc_loss, gen_loss):
 def main(model_path=None, noise=False):
     # to train saved or load new model
     if model_path:
-        gan = MapMaker.load(model_path, mode="train")
+        gan = MapEnlarge.load(model_path, mode="train")
     else:
-        gan = MapMaker()
+        gan = MapEnlarge()
 
     gan.load_train_data()
     disc_losses, gen_losses = [], []
@@ -53,7 +53,7 @@ def main(model_path=None, noise=False):
         gen_losses.extend(gl)
         print("Train Time:")
         print(timeit.default_timer() - start)
-        gan.save(f"models/mapmaker_batchnorm_{timeit.default_timer()}")
+        gan.save(f"models/mapenlarge_batchnorm_{timeit.default_timer()}")
         plot_losses(disc_losses, gen_losses)
         gan.generate_image()
 
@@ -62,7 +62,7 @@ if __name__ == "__main__":
     print(torch.cuda.is_available())
     print(cuda.detect())
     print(torch.cuda.get_device_name(torch.cuda.current_device()))
-    parser = argparse.ArgumentParser(description="Train the mapmaker GAN.")
+    parser = argparse.ArgumentParser(description="Train the mapenlarge GAN.")
     parser.add_argument(
         "--load",
         dest="model_path",

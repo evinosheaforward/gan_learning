@@ -21,7 +21,7 @@ def test_load_data():
     # plt.imshow((data[0, :, :, :].permute(1, 2, 0) + 1.0) / 2.0)
     # plt.show()
     print(data.size())
-    assert data.size() == (225, 3, 128, 128)
+    assert data.size() == (350, 3, 128, 128)
 
 
 def test_add_noise():
