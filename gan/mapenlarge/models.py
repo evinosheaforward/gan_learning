@@ -39,13 +39,13 @@ class Flatten(torch.nn.Module):
         return x.reshape(x.shape[0], -1)
 
 
-class Generator(nn.Module):
+class EnlargeGenerator(nn.Module):
     def __init__(self):
         super().__init__()
 
         self.model = nn.Sequential(
             nn.ConvTranspose2d(
-                in_channels=128,
+                in_channels=3,
                 out_channels=64,
                 kernel_size=(6, 6),
                 stride=(2, 2),
@@ -56,7 +56,7 @@ class Generator(nn.Module):
             nn.Dropout(0.3),
             nn.ConvTranspose2d(
                 in_channels=64,
-                out_channels=32,
+                out_channels=3,
                 kernel_size=(6, 6),
                 stride=(2, 2),
                 padding=(2, 2),
@@ -83,7 +83,7 @@ class Generator(nn.Module):
         torch.save(self.model.state_dict(), path)
 
 
-class Discriminator(nn.Module):
+class EnlargeDiscriminator(nn.Module):
     def __init__(self):
         super().__init__()
 
@@ -116,7 +116,8 @@ class Discriminator(nn.Module):
             nn.LeakyReLU(0.2),
             Flatten(),
             nn.Dropout(0.4),
-            nn.Linear(1024, 1),
+            nn.Linear(4096, 2048),
+            nn.Linear(2048, 1),
             nn.Sigmoid(),
         )
         if GPU_DEVICE:
@@ -142,8 +143,8 @@ class Discriminator(nn.Module):
 class MapEnlarge:
     def __init__(
         self,
-        discriminator=Discriminator(),
-        generator=Generator(),
+        discriminator=EnlargeDiscriminator(),
+        generator=EnlargeGenerator(),
         mapmaker="models/mapmaker/mapmaker_batchnorm_3746.8546998",
     ):
         self.discriminator = discriminator
@@ -155,8 +156,8 @@ class MapEnlarge:
     @classmethod
     def load(cls, path, mode="eval"):
         return cls(
-            Discriminator.load(path + "desc", mode=mode),
-            Generator.load(path + "gen", mode=mode),
+            EnlargeDiscriminator.load(path + "desc", mode=mode),
+            EnlargeGenerator.load(path + "gen", mode=mode),
         )
 
     def save(self, path):
@@ -298,7 +299,7 @@ class MapEnlarge:
 
     @staticmethod
     def discriminator_latent_input(batch_size=1, generated=True):
-        return torch.randn(batch_size, 3, 1024, 1024, device=GPU_DEVICE)
+        return torch.randn(batch_size, 3, 512, 512, device=GPU_DEVICE)
 
     def generate_from_file(self, fpath, save=True, output_dir="outputs/"):
         img = mpimg.imread(fpath).copy()
