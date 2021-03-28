@@ -56,9 +56,19 @@ class EnlargeGenerator(nn.Module):
             nn.Dropout(0.3),
             nn.ConvTranspose2d(
                 in_channels=64,
-                out_channels=3,
+                out_channels=64,
                 kernel_size=(6, 6),
                 stride=(2, 2),
+                padding=(2, 2),
+            ),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(0.2),
+            nn.Dropout(0.3),
+            nn.Conv2d(
+                in_channels=64,
+                out_channels=3,
+                kernel_size=(5, 5),
+                stride=(1, 1),
                 padding=(2, 2),
             ),
             nn.Tanh(),
@@ -194,7 +204,7 @@ class MapEnlarge:
         self,
         noise=False,
         batch_size=25,
-        num_epochs=10,
+        num_epochs=50,
     ):
         """Train the model by iterating through the dataset
         num_epoch times, printing the duration per epoch
@@ -290,14 +300,14 @@ class MapEnlarge:
         if save:
             plt.imsave(
                 output_dir
-                + f"mapmaker_batchnorm_{timeit.default_timer()}".replace(".", "_")
+                + f"mapmaker_{timeit.default_timer()}".replace(".", "_")
                 + ".jpg",
                 # Using tanh activation function, but rbg is 0..1, so do (X+1)/2.0
                 (input[0, :, :, :].detach().permute(1, 2, 0).numpy() + 1.0) / 2.0,
             )
             plt.imsave(
                 output_dir
-                + f"mapenlarge_batchnorm_{timeit.default_timer()}".replace(".", "_")
+                + f"mapenlarge_{timeit.default_timer()}".replace(".", "_")
                 + ".jpg",
                 # Using tanh activation function, but rbg is 0..1, so do (X+1)/2.0
                 (output[0, :, :, :].detach().permute(1, 2, 0).numpy() + 1.0) / 2.0,
