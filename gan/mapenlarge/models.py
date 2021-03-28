@@ -52,40 +52,64 @@ class EnlargeGenerator(nn.Module):
 
         self.model = nn.Sequential(
             Multiply(2),
-            nn.ConvTranspose2d(
-                in_channels=3,
-                out_channels=72,
-                kernel_size=(6, 6),
-                stride=(2, 2),
-                padding=(2, 2),
-            ),
-            nn.AvgPool2d(
-                kernel_size=(3, 3),
-                stride=(1, 1),
-                padding=(1, 1),
-            ),
-            nn.BatchNorm2d(72),
-            nn.Dropout(0.3),
-            nn.ConvTranspose2d(
-                in_channels=72,
-                out_channels=36,
-                kernel_size=(6, 6),
-                stride=(2, 2),
-                padding=(2, 2),
-            ),
-            nn.AvgPool2d(
-                kernel_size=(3, 3),
-                stride=(1, 1),
-                padding=(1, 1),
-            ),
-            nn.BatchNorm2d(36),
-            nn.Dropout(0.3),
+            # 2x X/2 convolutions
             nn.Conv2d(
-                in_channels=36,
-                out_channels=3,
-                kernel_size=(3, 3),
-                stride=(1, 1),
+                in_channels=3,
+                out_channels=64,
+                kernel_size=(4, 4),
+                stride=(2, 2),
                 padding=(1, 1),
+            ),
+            nn.BatchNorm2d(64),
+            nn.Dropout(0.3),
+            nn.LeakyReLU(0.2),
+            nn.Conv2d(
+                in_channels=64,
+                out_channels=128,
+                kernel_size=(4, 4),
+                stride=(2, 2),
+                padding=(1, 1),
+            ),
+            nn.BatchNorm2d(128),
+            nn.Dropout(0.3),
+            nn.LeakyReLU(0.2),
+            # 4x 2*X ConvTranspose
+            nn.ConvTranspose2d(
+                in_channels=128,
+                out_channels=128,
+                kernel_size=(6, 6),
+                stride=(2, 2),
+                padding=(2, 2),
+            ),
+            nn.BatchNorm2d(128),
+            nn.Dropout(0.3),
+            nn.LeakyReLU(0.2),
+            nn.ConvTranspose2d(
+                in_channels=128,
+                out_channels=128,
+                kernel_size=(6, 6),
+                stride=(2, 2),
+                padding=(2, 2),
+            ),
+            nn.BatchNorm2d(128),
+            # nn.Dropout(0.3),
+            nn.LeakyReLU(0.2),
+            nn.ConvTranspose2d(
+                in_channels=128,
+                out_channels=64,
+                kernel_size=(6, 6),
+                stride=(2, 2),
+                padding=(2, 2),
+            ),
+            nn.BatchNorm2d(64),
+            # nn.Dropout(0.3),
+            nn.LeakyReLU(0.2),
+            nn.ConvTranspose2d(
+                in_channels=64,
+                out_channels=3,
+                kernel_size=(6, 6),
+                stride=(2, 2),
+                padding=(2, 2),
             ),
             nn.Tanh(),
         )
@@ -221,7 +245,7 @@ class MapEnlarge:
         self,
         noise=False,
         batch_size=25,
-        num_epochs=10,
+        num_epochs=50,
     ):
         """Train the model by iterating through the dataset
         num_epoch times, printing the duration per epoch
@@ -252,7 +276,7 @@ class MapEnlarge:
         # Load optimizer
         optimizer_generator = torch.optim.Adam(
             self.generator.parameters(),
-            lr=0.00008,
+            lr=0.0001,
         )
         start = timeit.default_timer()
         # Repeat num_epoch times

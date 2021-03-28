@@ -48,7 +48,7 @@ def main(model_path=None, mapmaker_path=None, noise=False):
     for i in range(60):
         # Train the models
         start = timeit.default_timer()
-        dl, gl = gan.train(noise=noise)
+        dl, gl = gan.train(noise=noise, num_epochs=50)
         disc_losses.extend(dl)
         gen_losses.extend(gl)
         print("Train Time:")
