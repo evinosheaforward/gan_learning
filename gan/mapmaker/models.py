@@ -192,7 +192,7 @@ class MapMaker:
         self.generator.save(path + "gen")
 
     def load_train_data(self, path="data/dnd_maps/"):
-        self.train_data = mapimg.load_images_torchvision("data/dnd_maps/")
+        self.train_data = mapimg.load_images("data/dnd_maps/")
 
     def shuffle_data(self, batch_size):
         return torch.utils.data.DataLoader(
@@ -221,8 +221,8 @@ class MapMaker:
         """Train the model by iterating through the dataset
         num_epoch times, printing the duration per epoch
         """
-        batch_size = 1
-        num_epochs = 10
+        batch_size = 25
+        num_epochs = 50
         # Labels for real data:
         # - for discriminator, this is real images
         # - for generator this is what we wanted the discriminator output to be
