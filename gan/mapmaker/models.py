@@ -315,8 +315,8 @@ class MapMaker:
         )
 
     def generate_image(self, return_it=False, save=True, output_dir="outputs/"):
-        output = self.generator(self.latent_input())
         if save:
+            output = self.generator(self.latent_input())
             plt.imsave(
                 output_dir
                 + f"mapmaker_batchnorm_{timeit.default_timer()}".replace(".", "_")
@@ -326,8 +326,9 @@ class MapMaker:
                 / 2.0,
             )
         elif return_it:
-            return output
+            return self.generator(self.latent_input(batch_size=return_it))
         else:
+            output = self.generator(self.latent_input())
             plt.imshow(
                 (output[0, :, :, :].detach().cpu().permute(1, 2, 0).numpy() + 1.0)
                 / 2.0,

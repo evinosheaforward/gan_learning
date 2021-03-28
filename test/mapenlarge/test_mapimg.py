@@ -23,6 +23,7 @@ from gan.mapenlarge import models
 #     print(data.size())
 #     assert data.size() == (250, 3, 1024, 1024)
 
+
 def test_load_data():
     """Load whole dataset, long test"""
     data = mapimg.load_images("data/dnd_maps", num=5)

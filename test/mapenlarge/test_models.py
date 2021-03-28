@@ -39,5 +39,3 @@ def test_discriminator_corpus():
     print(output)
     print(output.size())
     assert output.size() == (1, 1)
-
-

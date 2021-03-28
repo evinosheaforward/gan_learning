@@ -145,12 +145,12 @@ class MapEnlarge:
         self,
         discriminator=EnlargeDiscriminator(),
         generator=EnlargeGenerator(),
-        mapmaker="models/mapmaker/mapmaker_batchnorm_3746.8546998",
+        mapmaker=None,
     ):
         self.discriminator = discriminator
         self.generator = generator
         if mapmaker is None:
-            raise ValueError("Mapmaker not specified")
+            mapmaker = "models/mapmaker/mapmaker_batchnorm_3746.8546998"
         self.mapmaker = MapMaker.load(mapmaker)
 
     @classmethod
@@ -164,8 +164,8 @@ class MapEnlarge:
         self.discriminator.save(path + "desc")
         self.generator.save(path + "gen")
 
-    def load_train_data(self, path="data/dnd_maps/"):
-        self.train_data = mapimg.load_images("data/dnd_maps/")
+    def load_train_data(self, path="data/dnd_maps/", num=-1):
+        self.train_data = mapimg.load_images("data/dnd_maps/", num=num)
 
     def shuffle_data(self, batch_size):
         return torch.utils.data.DataLoader(
@@ -190,12 +190,15 @@ class MapEnlarge:
         plt.savefig("results/generator_step_%03d.png" % (step + 1))
         plt.close()
 
-    def train(self, noise=False):
+    def train(
+        self,
+        noise=False,
+        batch_size=25,
+        num_epochs=10,
+    ):
         """Train the model by iterating through the dataset
         num_epoch times, printing the duration per epoch
         """
-        batch_size = 25
-        num_epochs = 50
         # Labels for real data:
         # - for discriminator, this is real images
         # - for generator this is what we wanted the discriminator output to be
@@ -279,7 +282,7 @@ class MapEnlarge:
         return disc_losses, gen_losses
 
     def latent_input(self, batch_size=1, generated=True):
-        return self.mapmaker.generate_image(return_it=True, save=False)
+        return self.mapmaker.generate_image(return_it=batch_size, save=False)
 
     def generate_image(self, save=True, output_dir="outputs/"):
         output = self.generator(self.latent_input()).cpu()

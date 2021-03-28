@@ -36,12 +36,12 @@ def plot_losses(disc_loss, gen_loss):
     plt.clf()
 
 
-def main(model_path=None, noise=False):
+def main(model_path=None, mapmaker_path=None, noise=False):
     # to train saved or load new model
     if model_path:
-        gan = MapEnlarge.load(model_path, mode="train")
+        gan = MapEnlarge.load(model_path, mode="train", mapmaker=mapmaker_path)
     else:
-        gan = MapEnlarge()
+        gan = MapEnlarge(mapmaker=mapmaker_path)
 
     gan.load_train_data()
     disc_losses, gen_losses = [], []
@@ -71,6 +71,13 @@ if __name__ == "__main__":
         help="path to model to load, will start from scratch if not specified",
     )
     parser.add_argument(
+        "--mapmaker",
+        dest="mapmaker_path",
+        type=str,
+        default=None,
+        help="path to model to load, will start from scratch if not specified",
+    )
+    parser.add_argument(
         "--noise",
         dest="noise",
         default=False,
@@ -79,7 +86,11 @@ if __name__ == "__main__":
         help="whether or not to add noise to the imags before passing to discriminator during training",
     )
     args = parser.parse_args()
-    main(model_path=args.model_path, noise=args.noise / 100.0)
+    main(
+        model_path=args.model_path,
+        mapmaker_path=args.mapmaker_path,
+        noise=args.noise / 100.0,
+    )
 
 """
 TODO: 
