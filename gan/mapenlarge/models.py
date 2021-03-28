@@ -24,6 +24,14 @@ def add_noise(in_tensor, percent=0.15):
         + (1.0 - percent) * in_tensor
     )
 
+class Multiply(torch.nn.Module):
+    def __init__(self, factor):
+        super().__init__()
+        self.factor = factor
+
+    def forward(self, x):
+        return x*self.factor
+
 
 class Reshape(torch.nn.Module):
     def __init__(self, shape):
@@ -38,38 +46,46 @@ class Flatten(torch.nn.Module):
     def forward(self, x):
         return x.reshape(x.shape[0], -1)
 
-
 class EnlargeGenerator(nn.Module):
     def __init__(self):
         super().__init__()
 
         self.model = nn.Sequential(
+            Multiply(2),
             nn.ConvTranspose2d(
                 in_channels=3,
-                out_channels=64,
+                out_channels=72,
                 kernel_size=(6, 6),
                 stride=(2, 2),
                 padding=(2, 2),
             ),
-            nn.BatchNorm2d(64),
-            nn.LeakyReLU(0.2),
+            nn.AvgPool2d(
+                kernel_size=(3, 3),
+                stride=(1, 1),
+                padding=(1, 1),
+            ),
+            nn.BatchNorm2d(72),
             nn.Dropout(0.3),
             nn.ConvTranspose2d(
-                in_channels=64,
-                out_channels=64,
+                in_channels=72,
+                out_channels=36,
                 kernel_size=(6, 6),
                 stride=(2, 2),
                 padding=(2, 2),
             ),
-            nn.BatchNorm2d(64),
-            nn.LeakyReLU(0.2),
+            nn.AvgPool2d(
+                kernel_size=(3, 3),
+                stride=(1, 1),
+                padding=(1, 1),
+            ),
+            nn.BatchNorm2d(36),
             nn.Dropout(0.3),
             nn.Conv2d(
-                in_channels=64,
+                in_channels=36,
                 out_channels=3,
-                kernel_size=(5, 5),
+                kernel_size=(3, 3),
                 stride=(1, 1),
-                padding=(2, 2),
+                padding=(1, 1),
             ),
             nn.Tanh(),
         )
@@ -125,7 +141,7 @@ class EnlargeDiscriminator(nn.Module):
             ),
             nn.LeakyReLU(0.2),
             Flatten(),
-            nn.Dropout(0.4),
+            nn.Dropout(0.3),
             nn.Linear(4096, 2048),
             nn.Linear(2048, 1),
             nn.Sigmoid(),
@@ -205,7 +221,7 @@ class MapEnlarge:
         self,
         noise=False,
         batch_size=25,
-        num_epochs=50,
+        num_epochs=10,
     ):
         """Train the model by iterating through the dataset
         num_epoch times, printing the duration per epoch
@@ -236,7 +252,7 @@ class MapEnlarge:
         # Load optimizer
         optimizer_generator = torch.optim.Adam(
             self.generator.parameters(),
-            lr=0.0001,
+            lr=0.00008,
         )
         start = timeit.default_timer()
         # Repeat num_epoch times
@@ -298,6 +314,7 @@ class MapEnlarge:
     def generate_image(self, save=True, output_dir="outputs/"):
         input = self.latent_input()
         output = self.generator(input).cpu()
+        print(torch.min(output), torch.max(output))
         if save:
             plt.imsave(
                 output_dir

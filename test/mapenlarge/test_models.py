@@ -8,12 +8,20 @@ def test_generator():
     """validate input / output sizes"""
     print(models.__file__)
     gan = models.MapEnlarge()
-    output = gan.generator(gan.latent_input()).cpu()
+    input = gan.latent_input()
+    maximum = torch.max(input)
+    minimum = torch.min(input)
+    print(minimum, maximum)
+    assert maximum <= 2
+    assert maximum > 0
+    assert minimum >= -2
+    assert minimum < 0
+    output = gan.generator(input).cpu()
     print(output)
     print(output.size())
-    # import matplotlib.pyplot as plt
-    # plt.imshow((output[0, :, :, :].detach().permute(1, 2, 0) +1) / 2)
-    # plt.show()
+    import matplotlib.pyplot as plt
+    plt.imshow((output[0, :, :, :].detach().permute(1, 2, 0) +1) / 2)
+    plt.show()
     maximum = torch.max(output)
     minimum = torch.min(output)
     print(minimum, maximum)
