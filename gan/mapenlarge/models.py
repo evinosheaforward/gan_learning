@@ -164,10 +164,11 @@ class MapEnlarge:
         self.mapmaker = MapMaker.load(mapmaker)
 
     @classmethod
-    def load(cls, path, mode="eval"):
+    def load(cls, path, mode="eval", mapmaker=None):
         return cls(
             EnlargeDiscriminator.load(path + "desc", mode=mode),
             EnlargeGenerator.load(path + "gen", mode=mode),
+            mapmaker=mapmaker,
         )
 
     def save(self, path):
@@ -300,25 +301,25 @@ class MapEnlarge:
         if save:
             plt.imsave(
                 output_dir
-                + f"mapmaker_{timeit.default_timer()}".replace(".", "_")
-                + ".jpg",
-                # Using tanh activation function, but rbg is 0..1, so do (X+1)/2.0
-                (input[0, :, :, :].detach().permute(1, 2, 0).numpy() + 1.0) / 2.0,
-            )
-            plt.imsave(
-                output_dir
                 + f"mapenlarge_{timeit.default_timer()}".replace(".", "_")
                 + ".jpg",
                 # Using tanh activation function, but rbg is 0..1, so do (X+1)/2.0
-                (output[0, :, :, :].detach().permute(1, 2, 0).numpy() + 1.0) / 2.0,
+                (output[0, :, :, :].detach().permute(1, 2, 0).cpu().numpy() + 1.0) / 2.0,
+            )
+            plt.imsave(
+                output_dir
+                + f"mapmaker_{timeit.default_timer()}".replace(".", "_")
+                + ".jpg",
+                # Using tanh activation function, but rbg is 0..1, so do (X+1)/2.0
+                (input[0, :, :, :].detach().permute(1, 2, 0).cpu().numpy() + 1.0) / 2.0,
             )
         else:
             plt.imshow(
-                (input[0, :, :, :].detach().permute(1, 2, 0).numpy() + 1.0) / 2.0,
+                (input[0, :, :, :].detach().permute(1, 2, 0).cpu().numpy() + 1.0) / 2.0,
             )
             plt.figure()
             plt.imshow(
-                (output[0, :, :, :].detach().permute(1, 2, 0).numpy() + 1.0) / 2.0,
+                (output[0, :, :, :].detach().permute(1, 2, 0).cpu().numpy() + 1.0) / 2.0,
             )
             plt.show()
 
