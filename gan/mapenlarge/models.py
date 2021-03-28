@@ -285,8 +285,16 @@ class MapEnlarge:
         return self.mapmaker.generate_image(return_it=batch_size, save=False)
 
     def generate_image(self, save=True, output_dir="outputs/"):
-        output = self.generator(self.latent_input()).cpu()
+        input = self.latent_input()
+        output = self.generator(input).cpu()
         if save:
+            plt.imsave(
+                output_dir
+                + f"mapmaker_batchnorm_{timeit.default_timer()}".replace(".", "_")
+                + ".jpg",
+                # Using tanh activation function, but rbg is 0..1, so do (X+1)/2.0
+                (input[0, :, :, :].detach().permute(1, 2, 0).numpy() + 1.0) / 2.0,
+            )
             plt.imsave(
                 output_dir
                 + f"mapenlarge_batchnorm_{timeit.default_timer()}".replace(".", "_")
@@ -295,6 +303,10 @@ class MapEnlarge:
                 (output[0, :, :, :].detach().permute(1, 2, 0).numpy() + 1.0) / 2.0,
             )
         else:
+            plt.imshow(
+                (input[0, :, :, :].detach().permute(1, 2, 0).numpy() + 1.0) / 2.0,
+            )
+            plt.figure()
             plt.imshow(
                 (output[0, :, :, :].detach().permute(1, 2, 0).numpy() + 1.0) / 2.0,
             )
