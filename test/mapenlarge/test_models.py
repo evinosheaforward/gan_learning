@@ -31,7 +31,7 @@ def test_discriminator_generator():
 def test_discriminator_corpus():
     """validate input / output sizes"""
     gan = models.MapEnlarge()
-    input_data = mapimg.load_images("data/dnd_maps", one=True).cuda()
+    input_data = mapimg.load_images("data/dnd_maps", num=1).cuda()
     print(input_data.size())
     print(input_data.type())
     assert input_data.cpu().size() == (1, 3, 512, 512)

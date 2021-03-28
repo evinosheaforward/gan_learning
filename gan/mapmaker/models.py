@@ -151,7 +151,7 @@ class Discriminator(nn.Module):
             nn.LeakyReLU(0.2),
             Flatten(),
             nn.Dropout(0.4),
-            nn.Linear(4096, 1),
+            nn.Linear(4096, 2048),
             nn.Linear(2048, 1),
             nn.Sigmoid(),
         )

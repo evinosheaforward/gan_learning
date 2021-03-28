@@ -18,25 +18,26 @@ GPU_DEVICE = torch.device("cuda")  # Default CUDA device
 # GPU_DEVICE = None
 
 
-def load_images(path, num=-1000):
+def load_images(path, num=1000):
     train_set = []
-    count = 1
+    count = 0
     for fname in os.listdir(path):
         fpath = os.path.join(path, fname)
         img = mpimg.imread(fpath).astype(numpy.uint8)
         # plt.imshow(img)
         # plt.figure()
         train_set.append(resize(img, (512, 512, 3)))
+        count += 1
         if count == num:
             break
-    return torch.from_numpy(
+    return (torch.from_numpy(
         numpy.asarray(train_set)
         # given the fact that the activation is tanh,
         # the output of the generator is applied with f(x): (x+1)/2
         # to get RGB images (0..1)
         # so, applying f-inverse(x): (x*2)-1
         # to the training data to get training data domain (-1..1)
-    ).permute(0, 3, 1, 2)
+    ).permute(0, 3, 1, 2) *2 -1).float()
 
 
 def load_images_torchvision(path="data/temp_maps/"):
