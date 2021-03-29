@@ -364,6 +364,38 @@ class MapEnlarge:
             )
             plt.show()
 
+
+    def generate_double_image(self, save=True, output_dir="outputs/"):
+        input = self.latent_input()
+        output = self.generator(self.generator(input)).cpu()
+        print(torch.min(output), torch.max(output))
+        if save:
+            plt.imsave(
+                output_dir
+                + f"mapenlarge_{timeit.default_timer()}".replace(".", "_")
+                + ".jpg",
+                # Using tanh activation function, but rbg is 0..1, so do (X+1)/2.0
+                (output[0, :, :, :].detach().permute(1, 2, 0).cpu().numpy() + 1.0) / 2.0,
+            )
+            plt.imsave(
+                output_dir
+                + f"mapmaker_{timeit.default_timer()}".replace(".", "_")
+                + ".jpg",
+                # Using tanh activation function, but rbg is 0..1, so do (X+1)/2.0
+                (input[0, :, :, :].detach().permute(1, 2, 0).cpu().numpy() + 1.0) / 2.0,
+            )
+        else:
+            plt.imshow(
+                (input[0, :, :, :].detach().permute(1, 2, 0).cpu().numpy() + 1.0) / 2.0,
+            )
+            plt.figure()
+            plt.imshow(
+                (output[0, :, :, :].detach().permute(1, 2, 0).cpu().numpy() + 1.0) / 2.0,
+            )
+            plt.show()
+
+
+
     @staticmethod
     def discriminator_latent_input(batch_size=1, generated=True):
         return torch.randn(batch_size, 3, 512, 512, device=GPU_DEVICE)
