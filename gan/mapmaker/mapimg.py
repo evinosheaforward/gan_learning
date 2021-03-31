@@ -23,7 +23,7 @@ def load_images(path, one=False):
         img = mpimg.imread(fpath).copy()
         # plt.imshow(img)
         # plt.figure()
-        train_set.append(resize(img, (128, 128, 3)))
+        train_set.append(resize(img, (512, 512, 3)))
         if one:
             break
     return ((
