@@ -9,7 +9,7 @@ from gan.mapmaker import models
 
 def test_load_data():
     """Load whole dataset, long test"""
-    data = mapimg.load_images("data/dnd_maps", one=False)
+    data = mapimg.load_images("data/dnd_maps", one=True)
     maximum = torch.max(data)
     minimum = torch.min(data)
     print(data)
@@ -21,7 +21,7 @@ def test_load_data():
     # plt.imshow((data[0, :, :, :].permute(1, 2, 0) + 1.0) / 2.0)
     # plt.show()
     print(data.size())
-    assert data.size() == (225, 3, 128, 128)
+    assert data.size() == (1, 3, 512, 512)
 
 
 def test_add_noise():
@@ -38,4 +38,4 @@ def test_add_noise():
     assert minimum >= -1
     assert minimum < 0
     print(data.size())
-    assert data.size() == (1, 3, 128, 128)
+    assert data.size() == (1, 3, 512, 512)

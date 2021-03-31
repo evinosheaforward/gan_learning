@@ -260,7 +260,7 @@ class GAN:
         num_epoch times, printing the duration per epoch
         """
         batch_size = 25
-        num_epochs = 50
+        num_epochs = 10
         # Labels for real data:
         # - for discriminator, this is real images
         # - for generator this is what we wanted the discriminator output to be
@@ -370,4 +370,4 @@ class GAN:
 
     @staticmethod
     def discriminator_latent_input(batch_size=1, generated=True):
-        return torch.randn(batch_size, 3, 128, 128, device=GPU_DEVICE)
+        return torch.randn(batch_size, 3, 512, 512, device=GPU_DEVICE)

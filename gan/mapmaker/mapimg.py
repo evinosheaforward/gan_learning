@@ -26,19 +26,22 @@ def load_images(path, one=False):
         train_set.append(resize(img, (512, 512, 3)))
         if one:
             break
-    return ((
+    return (
         (
-            torch.from_numpy(
-                numpy.asarray(train_set)
-                # given the fact that the activation is tanh,
-                # the output of the generator is applied with f(x): (x+1)/2
-                # to get RGB images (0..1)
-                # so, applying f-inverse(x): (x*2)-1
-                # to the training data to get training data domain (-1..1)
-            )
-        ).permute(0, 3, 1, 2)
-        * 2.0
-    ) - 1.0).float()
+            (
+                torch.from_numpy(
+                    numpy.asarray(train_set)
+                    # given the fact that the activation is tanh,
+                    # the output of the generator is applied with f(x): (x+1)/2
+                    # to get RGB images (0..1)
+                    # so, applying f-inverse(x): (x*2)-1
+                    # to the training data to get training data domain (-1..1)
+                )
+            ).permute(0, 3, 1, 2)
+            * 2.0
+        )
+        - 1.0
+    ).float()
 
 
 def load_image(fpath):
