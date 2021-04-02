@@ -200,7 +200,7 @@ class MapEnlarge:
         self.discriminator = discriminator
         self.generator = generator
         if mapmaker is None:
-            mapmaker = "models/mapmaker/mapmaker_batchnorm_3746.8546998"
+            mapmaker = "models/mapmaker/mapmaker_batchnorm_3916.0292234"
         self.mapmaker = MapMaker.load(mapmaker)
 
     @classmethod
