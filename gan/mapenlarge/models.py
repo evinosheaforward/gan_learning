@@ -140,25 +140,27 @@ class EnlargeDiscriminator(nn.Module):
         self.model = nn.Sequential(
             nn.Conv2d(
                 in_channels=3,
-                out_channels=64,
+                out_channels=256,
                 kernel_size=(8, 8),
                 stride=(4, 4),
                 padding=(3, 3),
             ),
+            nn.BatchNorm2d(256),
             nn.LeakyReLU(0.2),
             nn.Dropout(0.3),
             nn.Conv2d(
-                in_channels=64,
-                out_channels=64,
+                in_channels=256,
+                out_channels=256,
                 kernel_size=(8, 8),
                 stride=(4, 4),
                 padding=(3, 3),
             ),
+            nn.BatchNorm2d(256),
             nn.LeakyReLU(0.2),
             nn.Dropout(0.3),
             nn.Conv2d(
-                in_channels=64,
-                out_channels=64,
+                in_channels=256,
+                out_channels=128,
                 kernel_size=(8, 8),
                 stride=(4, 4),
                 padding=(3, 3),
@@ -245,8 +247,8 @@ class MapEnlarge:
     def train(
         self,
         noise=False,
-        batch_size=25,
-        num_epochs=50,
+        batch_size=50,
+        num_epochs=100,
     ):
         """Train the model by iterating through the dataset
         num_epoch times, printing the duration per epoch
