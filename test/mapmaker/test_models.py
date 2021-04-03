@@ -20,11 +20,11 @@ def test_discriminator_generator():
     gan = models.GAN()
     input_data = gan.discriminator_latent_input()
     print(input_data.size())
-    assert input_data.cpu().size() == (1, 3, 128, 128)
-    print(input_data.type())
-    output = gan.discriminator(input_data).cpu()
     print(output)
     print(output.size())
+    print(input_data.type())
+    assert input_data.cpu().size() == (1, 3, 128, 128)
+    output = gan.discriminator(input_data).cpu()
     assert output.size() == (1, 1)
 
 

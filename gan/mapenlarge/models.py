@@ -141,7 +141,7 @@ class EnlargeDiscriminator(nn.Module):
             nn.Conv2d(
                 in_channels=3,
                 out_channels=256,
-                kernel_size=(8, 8),
+                kernel_size=(32, 32),
                 stride=(4, 4),
                 padding=(3, 3),
             ),
@@ -151,7 +151,7 @@ class EnlargeDiscriminator(nn.Module):
             nn.Conv2d(
                 in_channels=256,
                 out_channels=128,
-                kernel_size=(8, 8),
+                kernel_size=(16, 16),
                 stride=(4, 4),
                 padding=(3, 3),
             ),
@@ -168,9 +168,7 @@ class EnlargeDiscriminator(nn.Module):
             nn.LeakyReLU(0.2),
             Flatten(),
             nn.Dropout(0.3),
-            nn.Linear(4096, 2048),
-            nn.Dropout(0.2),
-            nn.Linear(2048, 1),
+            nn.Linear(3136, 1),
             nn.Sigmoid(),
         )
         if GPU_DEVICE:
