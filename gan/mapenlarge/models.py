@@ -269,7 +269,7 @@ class MapEnlarge:
         # Load optimizer
         optimizer_discriminator = torch.optim.Adam(
             self.discriminator.parameters(),
-            lr=0.0004,
+            lr=0.0008,
         )
         # # self.generator.model.train()
         # # self.discriminator.model.eval()
@@ -277,7 +277,7 @@ class MapEnlarge:
         # Load optimizer
         optimizer_generator = torch.optim.Adam(
             self.generator.parameters(),
-            lr=0.0001,
+            lr=0.0002,
         )
         start = timeit.default_timer()
         # Repeat num_epoch times
