@@ -44,6 +44,7 @@ def main(model_path=None, noise=False):
         gan = MapMaker()
 
     gan.load_train_data()
+    print("finished loading training data")
     disc_losses, gen_losses = [], []
     for i in range(60):
         # Train the models
@@ -79,11 +80,5 @@ if __name__ == "__main__":
         help="whether or not to add noise to the imags before passing to discriminator during training",
     )
     args = parser.parse_args()
+    print("START")
     main(model_path=args.model_path, noise=args.noise / 100.0)
-
-"""
-TODO: 
-X try out numba for using graphics card
-X try running algorithm with numba
-- try working on a new GAN
-"""

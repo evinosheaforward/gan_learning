@@ -40,15 +40,25 @@ class Flatten(torch.nn.Module):
 
 class Generator(nn.Module):
     def __init__(self):
-        self.in_ch, self.in_x, self.in_y = 8, 8, 8
+        self.in_ch, self.in_x, self.in_y = 12, 12, 12
         super().__init__()
 
         self.model = nn.Sequential(
             Flatten(),
-            nn.Linear(self.in_ch * self.in_x * self.in_y, 256 * 8 * 8),
+            nn.Linear(self.in_ch * self.in_x * self.in_y, 512 * 8 * 8),
             nn.LeakyReLU(0.2),
             nn.Dropout(0.3),
-            Reshape((256, 8, 8)),
+            Reshape((512, 8, 8)),
+            nn.Dropout(0.3),
+            nn.ConvTranspose2d(
+                in_channels=512,
+                out_channels=256,
+                kernel_size=(6, 6),
+                stride=(2, 2),
+                padding=(2, 2),
+            ),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(0.2),
             nn.Dropout(0.3),
             nn.ConvTranspose2d(
                 in_channels=256,
@@ -82,6 +92,16 @@ class Generator(nn.Module):
             nn.Dropout(0.3),
             nn.ConvTranspose2d(
                 in_channels=32,
+                out_channels=16,
+                kernel_size=(6, 6),
+                stride=(2, 2),
+                padding=(2, 2),
+            ),
+            nn.BatchNorm2d(16),
+            nn.LeakyReLU(0.2),
+            nn.Dropout(0.3),
+            nn.ConvTranspose2d(
+                in_channels=16,
                 out_channels=3,
                 kernel_size=(6, 6),
                 stride=(2, 2),
@@ -116,6 +136,24 @@ class Discriminator(nn.Module):
         self.model = nn.Sequential(
             nn.Conv2d(
                 in_channels=3,
+                out_channels=128,
+                kernel_size=(6, 6),
+                stride=(2, 2),
+                padding=(2, 2),
+            ),
+            nn.LeakyReLU(0.2),
+            nn.Dropout(0.3),
+            nn.Conv2d(
+                in_channels=128,
+                out_channels=128,
+                kernel_size=(6, 6),
+                stride=(2, 2),
+                padding=(2, 2),
+            ),
+            nn.LeakyReLU(0.2),
+            nn.Dropout(0.3),
+            nn.Conv2d(
+                in_channels=128,
                 out_channels=64,
                 kernel_size=(6, 6),
                 stride=(2, 2),
@@ -125,7 +163,7 @@ class Discriminator(nn.Module):
             nn.Dropout(0.3),
             nn.Conv2d(
                 in_channels=64,
-                out_channels=64,
+                out_channels=32,
                 kernel_size=(6, 6),
                 stride=(2, 2),
                 padding=(2, 2),
@@ -133,17 +171,8 @@ class Discriminator(nn.Module):
             nn.LeakyReLU(0.2),
             nn.Dropout(0.3),
             nn.Conv2d(
-                in_channels=64,
-                out_channels=64,
-                kernel_size=(6, 6),
-                stride=(2, 2),
-                padding=(2, 2),
-            ),
-            nn.LeakyReLU(0.2),
-            nn.Dropout(0.3),
-            nn.Conv2d(
-                in_channels=64,
-                out_channels=64,
+                in_channels=32,
+                out_channels=16,
                 kernel_size=(6, 6),
                 stride=(2, 2),
                 padding=(2, 2),
@@ -201,7 +230,7 @@ class MapMaker:
 
     def performance(self, step, n_samples=5):
         # prepare fake examples
-        generated_samples = gan.generator(GAN.latent_input(n_samples))
+        generated_samples = self.generator(self.latent_input(n_samples))
         generated_samples = generated_samples.detach()
         if GPU_DEVICE:
             generated_samples = generated_samples.cpu()
@@ -212,7 +241,7 @@ class MapMaker:
             # turn off axis
             plt.axis("off")
             # plot raw pixel data
-            plt.imshow(X[i, 0, :, :], cmap="gray_r")
+            plt.imshow(generated_samples[i, 0, :, :], cmap="gray_r")
         # save plot to file
         plt.savefig("results/generator_step_%03d.png" % (step + 1))
         plt.close()
@@ -221,7 +250,8 @@ class MapMaker:
         """Train the model by iterating through the dataset
         num_epoch times, printing the duration per epoch
         """
-        batch_size = 25
+        batch_size = 58
+        print(f"{batch_size=}")
         num_epochs = 50
         # Labels for real data:
         # - for discriminator, this is real images
@@ -249,7 +279,7 @@ class MapMaker:
         # Load optimizer
         optimizer_generator = torch.optim.Adam(
             self.generator.parameters(),
-            lr=0.0001,
+            lr=0.001,
         )
         start = timeit.default_timer()
         # Repeat num_epoch times
@@ -286,7 +316,10 @@ class MapMaker:
                 # Training the generator
                 self.generator.zero_grad()
                 if noise:
-                    generated_samples = self.generator(latent_space_samples)
+                    generated_samples = add_noise(
+                        self.generator(latent_space_samples),
+                        percent=noise,
+                    )
                 else:
                     generated_samples = self.generator(latent_space_samples)
                 output_discriminator_generated = self.discriminator(generated_samples)
@@ -317,6 +350,7 @@ class MapMaker:
     def generate_image(self, return_it=False, save=True, output_dir="outputs/"):
         if save:
             output = self.generator(self.latent_input())
+            print(output.size())
             plt.imsave(
                 output_dir
                 + f"mapmaker_batchnorm_{timeit.default_timer()}".replace(".", "_")
@@ -338,3 +372,6 @@ class MapMaker:
     @staticmethod
     def discriminator_latent_input(batch_size=1, generated=True):
         return torch.randn(batch_size, 3, 128, 128, device=GPU_DEVICE)
+
+    def self_test(self):
+        print(self.discriminator(self.generator(self.latent_input())).size())

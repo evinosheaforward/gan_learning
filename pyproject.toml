@@ -3,6 +3,9 @@ name = "gan"
 version = "0.1.0"
 description = "Learning some GANs"
 authors = ["Evin O'Shea <evinoshea@gmail.com>"]
+packages = [
+    { include = "gan", from = "./" },
+]
 
 [tool.poetry.dependencies]
 python = "^3.9"

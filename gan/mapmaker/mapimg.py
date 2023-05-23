@@ -16,16 +16,20 @@ GPU_DEVICE = torch.device("cuda")  # Default CUDA device
 # GPU_DEVICE = None
 
 
-def load_images(path, one=False):
+def load_images(path, one=False, maximum=-1):
     train_set = []
-    for fname in os.listdir(path):
+    for i, fname in enumerate(os.listdir(path)):
         fpath = os.path.join(path, fname)
         img = mpimg.imread(fpath).copy()
         # plt.imshow(img)
         # plt.figure()
-        train_set.append(resize(img, (128, 128, 3)))
+        train_set.append(resize(img, (512, 512, 3)))
+        print(f"read image {i}")
         if one:
             break
+        if i+1 == maximum:
+            break
+    print("loading all images to torch")
     return (
         (
             (
@@ -46,7 +50,7 @@ def load_images(path, one=False):
 
 def load_image(fpath):
     img = mpimg.imread(fpath).copy()
-    return torch.from_numpy(numpy.asarray(train_set)).float() / 255.0
+    return torch.from_numpy(numpy.asarray([img])).float() / 256.0
 
 
 def download_image(url):
